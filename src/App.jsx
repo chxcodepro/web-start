@@ -953,7 +953,7 @@ export default function App() {
                   </div>
                   {/* 自定义下拉菜单 - 玻璃拟态 */}
                   {isEngineDropdownOpen && (
-                    <div className="absolute top-full left-0 mt-2 z-50 backdrop-blur-xl bg-white/10 border border-white/20 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden min-w-[120px]">
+                    <div className="absolute top-full left-0 mt-2 z-[70] backdrop-blur-xl bg-white/10 border border-white/20 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden min-w-[120px]">
                       {Object.entries(SEARCH_ENGINES).map(([key, engine]) => (
                         <button
                           key={key}
@@ -996,7 +996,7 @@ export default function App() {
             </div>
             {/* 搜索建议下拉 - 玻璃拟态 */}
             {isSearchFocused && searchQuery.trim().length >= 1 && searchSuggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-3 z-30 backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden">
+              <div className="absolute top-full left-0 right-0 mt-3 z-[70] backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden">
                 {searchSuggestions.map((suggestion, index) => (
                   <button
                     key={suggestion}
@@ -1386,13 +1386,13 @@ function SortableSiteCard({ site, isAdmin, onEdit, onDelete, isBatchMode, isSele
   );
 }
 
-// 辅助函数：计算 favicon URL
+// 辅助函数：计算 favicon URL（使用 DuckDuckGo 图标服务，更稳定）
 const getFaviconUrl = (url) => {
   try {
     // 补全协议，避免 new URL 报错
     const fullUrl = /^https?:\/\//.test(url) ? url : `https://${url}`;
     const domain = new URL(fullUrl).hostname;
-    return `https://www.google.com/s2/favicons?sz=128&domain=${domain}`;
+    return `https://icons.duckduckgo.com/ip3/${domain}.ico`;
   } catch (e) {
     return '';
   }
