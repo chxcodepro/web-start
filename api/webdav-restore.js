@@ -1,3 +1,5 @@
+import { verifyRequestAuth } from './_auth.js';
+
 const DEFAULT_FILE_PATH = '/my-nav-backup.json';
 
 const normalizeConfig = (config = {}) => {
@@ -29,6 +31,11 @@ export default async function handler(req, res) {
   }
 
   try {
+    const authResult = await verifyRequestAuth(req);
+    if (!authResult.ok) {
+      return res.status(401).json({ error: authResult.error });
+    }
+
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
     const config = normalizeConfig(body.config);
     const configError = validateConfig(config);

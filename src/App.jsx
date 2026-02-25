@@ -8,15 +8,10 @@ import {
   Globe, 
   LayoutGrid, 
   Image as ImageIcon,
-  Pin,
   Search,
   Zap,
   AlertTriangle,
-  Menu,
-  Home,
-  FileText,
   Settings,
-  ArrowRight,
   Lock,
   LogOut,
   User,
@@ -101,6 +96,8 @@ const DEFAULT_WEB_DAV_CONFIG = {
   password: '',
   filePath: '/my-nav-backup.json',
 };
+const SINGLE_PAGE_ID = 'home';
+const SINGLE_PAGE_NAME = '首页';
 
 const normalizeWebDavConfig = (config) => ({
   ...DEFAULT_WEB_DAV_CONFIG,
@@ -111,16 +108,76 @@ const normalizeWebDavConfig = (config) => ({
   filePath: ((config?.filePath || DEFAULT_WEB_DAV_CONFIG.filePath).trim() || DEFAULT_WEB_DAV_CONFIG.filePath),
 });
 
+const normalizeSiteName = (site) => {
+  const name = (site?.name || '').trim();
+  if (name) return name;
+  const rawUrl = (site?.url || site?.innerUrl || '').trim();
+  if (!rawUrl) return '未命名站点';
+  try {
+    const fullUrl = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
+    return new URL(fullUrl).hostname;
+  } catch (e) {
+    return rawUrl;
+  }
+};
+
+const mergePagesToSingle = (rawPages) => {
+  const sourcePages = Array.isArray(rawPages) ? rawPages : [];
+  const groups = [];
+  const groupSet = new Set();
+  const usedSiteIds = new Set();
+  const sites = [];
+
+  const ensureGroup = (groupName) => {
+    const normalized = String(groupName || '').trim() || '默认';
+    if (!groupSet.has(normalized)) {
+      groupSet.add(normalized);
+      groups.push(normalized);
+    }
+    return normalized;
+  };
+
+  sourcePages.forEach((page, pageIndex) => {
+    (Array.isArray(page?.groups) ? page.groups : []).forEach(ensureGroup);
+    (Array.isArray(page?.sites) ? page.sites : []).forEach((site, siteIndex) => {
+      const baseId = String(site?.id || `site-${pageIndex}-${siteIndex}`);
+      let finalId = baseId;
+      let suffix = 2;
+      while (usedSiteIds.has(finalId)) {
+        finalId = `${baseId}-${suffix}`;
+        suffix += 1;
+      }
+      usedSiteIds.add(finalId);
+
+      sites.push({
+        id: finalId,
+        name: normalizeSiteName(site),
+        url: String(site?.url || ''),
+        innerUrl: String(site?.innerUrl || ''),
+        logo: String(site?.logo || ''),
+        group: ensureGroup(site?.group),
+        pinned: !!site?.pinned,
+        useFavicon: !!site?.useFavicon,
+      });
+    });
+  });
+
+  if (groups.length === 0) groups.push('默认');
+
+  return {
+    id: SINGLE_PAGE_ID,
+    name: SINGLE_PAGE_NAME,
+    groups,
+    sites,
+  };
+};
+
 export default function App() {
   const [pages, setPages] = useState([]); 
   const [isLoading, setIsLoading] = useState(true);
   const [isDbConnected, setIsDbConnected] = useState(false);
   const [user, setUser] = useState(null); 
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-
-  const [activePageId, setActivePageId] = useState(() => {
-    return localStorage.getItem('my-nav-active-page') || 'home';
-  });
   
   const [bgImage, setBgImage] = useState(() => {
     return localStorage.getItem('my-nav-bg') || null;
@@ -132,8 +189,6 @@ export default function App() {
   const [editingSite, setEditingSite] = useState(null); 
   const [isBgModalOpen, setIsBgModalOpen] = useState(false);
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [editingPage, setEditingPage] = useState(null); 
   const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, message: '', action: null });
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [selectedSiteIds, setSelectedSiteIds] = useState([]);
@@ -179,24 +234,16 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  useEffect(() => { localStorage.setItem('my-nav-active-page', activePageId); }, [activePageId]);
   useEffect(() => { if(bgImage) localStorage.setItem('my-nav-bg', bgImage); }, [bgImage]);
-  
-  useEffect(() => {
-    if (!isLoading && pages.length > 0 && !pages.find(p => p.id === activePageId)) {
-      setActivePageId(pages[0].id);
-    }
-  }, [pages, activePageId, isLoading]);
 
   const activePage = useMemo(() => {
-    if (pages.length === 0) return { name: '', groups: [], sites: [] };
-    return pages.find(p => p.id === activePageId) || pages[0];
-  }, [pages, activePageId]);
+    return mergePagesToSingle(pages);
+  }, [pages]);
 
   useEffect(() => {
-    setIsBatchMode(false);
-    setSelectedSiteIds([]);
-  }, [activePageId]);
+    if (isLoading || !isAdmin || pages.length <= 1) return;
+    savePagesToCloud([activePage]);
+  }, [isLoading, isAdmin, pages, activePage]);
 
   useEffect(() => {
     const siteIds = new Set((activePage.sites || []).map(s => s.id));
@@ -222,8 +269,9 @@ export default function App() {
 
   const savePagesToCloud = async (newPages) => {
     if (!isAdmin) { alert("请先登录管理员账号"); return; }
+    const normalizedPages = [mergePagesToSingle(newPages)];
     try { 
-      await setDoc(doc(db, "nav_data", "main"), { pages: newPages }, { merge: true }); 
+      await setDoc(doc(db, "nav_data", "main"), { pages: normalizedPages }, { merge: true }); 
     } catch (e) { 
       console.error("保存失败:", e); alert("保存失败，请检查登录状态。"); 
     }
@@ -260,6 +308,15 @@ export default function App() {
     return true;
   };
 
+  const getApiAuthHeaders = async () => {
+    if (!user) throw new Error('请先登录管理员账号。');
+    const idToken = await user.getIdToken();
+    return {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${idToken}`,
+    };
+  };
+
   const handleWebDavBackup = async (configFromModal) => {
     if (!isAdmin) { alert("请先登录管理员账号"); return; }
     const config = persistWebDavConfig(configFromModal, { silent: true });
@@ -268,14 +325,15 @@ export default function App() {
     const backupData = {
       version: 1,
       exportedAt: new Date().toISOString(),
-      pages,
+      pages: [activePage],
       bgImage: bgImage || DEFAULT_BG,
     };
 
     try {
+      const headers = await getApiAuthHeaders();
       const response = await fetch('/api/webdav-backup', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ config, backupData }),
       });
       const payload = await response.json().catch(() => ({}));
@@ -296,9 +354,10 @@ export default function App() {
     if (!validateWebDavConfig(config)) return;
 
     try {
+      const headers = await getApiAuthHeaders();
       const response = await fetch('/api/webdav-restore', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ config }),
       });
       const payload = await response.json().catch(() => ({}));
@@ -306,7 +365,7 @@ export default function App() {
         throw new Error(payload?.error || `HTTP ${response.status}`);
       }
       const backupData = payload?.backupData;
-      const restoredPages = Array.isArray(backupData?.pages) ? backupData.pages : null;
+      const restoredPages = Array.isArray(backupData?.pages) ? [mergePagesToSingle(backupData.pages)] : null;
       const restoredBgImage = typeof backupData?.bgImage === 'string' && backupData.bgImage.trim()
         ? backupData.bgImage
         : DEFAULT_BG;
@@ -326,7 +385,6 @@ export default function App() {
 
       setPages(restoredPages);
       setBgImage(restoredBgImage);
-      if (restoredPages[0]?.id) setActivePageId(restoredPages[0].id);
       alert('WebDAV 恢复成功。');
     } catch (error) {
       console.error('WebDAV 恢复失败:', error);
@@ -469,9 +527,8 @@ export default function App() {
         alert('没有解析到可导入的书签内容。');
         return;
       }
-      const mergedPages = [...pages, ...importedPages];
+      const mergedPages = [mergePagesToSingle([...pages, ...importedPages])];
       await savePagesToCloud(mergedPages);
-      setActivePageId(importedPages[0].id);
       alert(`导入成功：新增 ${importedPages.length} 个页面。`);
     } catch (error) {
       console.error('导入书签失败:', error);
@@ -479,36 +536,10 @@ export default function App() {
     }
   };
 
-  const addPage = (name) => {
-    const newPage = { id: Date.now().toString(), name: name || '新页面', sites: [], groups: ['默认'] };
-    const newPages = [...pages, newPage];
-    savePagesToCloud(newPages);
-    setActivePageId(newPage.id);
-    setEditingPage(null);
-  };
-  const updatePageName = (id, newName) => {
-    const newPages = pages.map(p => p.id === id ? { ...p, name: newName } : p);
-    savePagesToCloud(newPages);
-    setEditingPage(null);
-  };
-  const deletePage = (id) => {
-    if (pages.length <= 1) { alert("至少保留一个页面"); return; }
-    setConfirmConfig({
-      isOpen: true, message: '确定要删除这个页面吗？',
-      action: () => {
-        const newPages = pages.filter(p => p.id !== id);
-        savePagesToCloud(newPages);
-        if (activePageId === id) setActivePageId(newPages[0].id);
-        setConfirmConfig({ isOpen: false, message: '', action: null });
-        setEditingPage(null);
-      }
-    });
-  };
-
   const updateCurrentPageData = (updater) => {
-    const targetId = activePage.id; 
-    const newPages = pages.map(p => { if (p.id === targetId) return updater(p); return p; });
-    savePagesToCloud(newPages);
+    const nextPage = updater(activePage);
+    const normalizedPage = mergePagesToSingle([nextPage]);
+    savePagesToCloud([normalizedPage]);
   };
 
   const saveSite = (siteData) => {
@@ -594,8 +625,6 @@ export default function App() {
     return map;
   }, [activePage]);
 
-  const showSidebarTrigger = isAdmin || pages.length > 1;
-
   if (isLoading) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center relative text-white font-sans selection:bg-purple-500">
@@ -630,13 +659,7 @@ export default function App() {
         </div>
       )}
 
-      <Sidebar 
-        isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} pages={pages} activePageId={activePageId} setActivePageId={setActivePageId}
-        enableAdmin={isAdmin} onAddPage={addPage} onRenamePage={updatePageName} onDeletePage={deletePage}
-        setEditingPage={setEditingPage} editingPage={editingPage} showTrigger={showSidebarTrigger}
-      />
-
-      <div className={`relative z-10 container mx-auto px-4 py-8 max-w-6xl pb-32 transition-all duration-300 ${isSidebarOpen ? 'pl-4 md:pl-4' : ''}`}>
+      <div className="relative z-10 container mx-auto px-4 py-8 max-w-6xl pb-32 transition-all duration-300">
         
         <div className="flex flex-col items-center justify-center mb-8 pt-10 md:pt-14">
           <div className="w-full max-w-2xl relative group shadow-2xl">
@@ -648,60 +671,6 @@ export default function App() {
             </form>
           </div>
         </div>
-
-        {isAdmin && (
-          <div className="mb-5 flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setIsWebDavModalOpen(true)}
-              className="px-3 py-1.5 rounded-lg bg-cyan-600/80 hover:bg-cyan-500 text-white text-sm font-medium transition flex items-center gap-1.5"
-            >
-              <Settings size={14} />
-              WebDAV
-            </button>
-            <button
-              type="button"
-              onClick={() => importInputRef.current?.click()}
-              className="px-3 py-1.5 rounded-lg bg-indigo-600/80 hover:bg-indigo-500 text-white text-sm font-medium transition flex items-center gap-1.5"
-            >
-              <Upload size={14} />
-              导入书签
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsBatchMode(v => !v)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${isBatchMode ? 'bg-amber-600/80 hover:bg-amber-500 text-white' : 'bg-white/10 hover:bg-white/20 text-white/90'}`}
-            >
-              {isBatchMode ? '退出批量' : '批量删除'}
-            </button>
-            {isBatchMode && (
-              <>
-                <button
-                  type="button"
-                  onClick={toggleSelectAllSites}
-                  className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition"
-                >
-                  {selectedSiteIds.length === (activePage.sites || []).length && (activePage.sites || []).length > 0 ? '取消全选' : '全选'}
-                </button>
-                <button
-                  type="button"
-                  onClick={requestDeleteSelectedSites}
-                  disabled={selectedSiteIds.length === 0}
-                  className="px-3 py-1.5 rounded-lg bg-red-600/80 hover:bg-red-500 disabled:opacity-50 disabled:hover:bg-red-600 text-white text-sm font-medium transition"
-                >
-                  删除选中 ({selectedSiteIds.length})
-                </button>
-              </>
-            )}
-            <input
-              ref={importInputRef}
-              type="file"
-              accept=".html,text/html"
-              className="hidden"
-              onChange={handleImportBookmarks}
-            />
-          </div>
-        )}
 
         {pinnedSites.length > 0 && (
           <div className="mb-6 animate-fade-in-up">
@@ -771,13 +740,29 @@ export default function App() {
             </button>
           ) : (
             <>
-              <button onClick={() => setIsGroupModalOpen(true)} className="w-11 h-11 bg-indigo-600/90 hover:bg-indigo-500 text-white rounded-full shadow-lg shadow-indigo-900/40 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 backdrop-blur-sm" title="管理分组"><LayoutGrid size={18} /></button>
-              <button onClick={() => setIsBgModalOpen(true)} className="w-11 h-11 bg-gray-700/90 hover:bg-gray-600 text-white rounded-full shadow-lg shadow-black/40 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 backdrop-blur-sm" title="设置背景"><ImageIcon size={18} /></button>
-              <button onClick={() => { setEditingSite(null); setIsModalOpen(true); }} className="w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-xl shadow-blue-900/50 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 backdrop-blur-sm ring-4 ring-black/10" title="添加站点"><Plus size={28} /></button>
-              <button onClick={handleLogout} className="w-11 h-11 bg-red-600/80 hover:bg-red-500 text-white rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95 backdrop-blur-sm mt-2" title="退出登录"><LogOut size={18} /></button>
+              <button onClick={() => setIsGroupModalOpen(true)} className="w-12 h-12 bg-indigo-600/90 hover:bg-indigo-500 text-white rounded-full shadow-lg shadow-indigo-900/40 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 backdrop-blur-sm" title="管理分组"><LayoutGrid size={18} /></button>
+              <button onClick={() => setIsBgModalOpen(true)} className="w-12 h-12 bg-gray-700/90 hover:bg-gray-600 text-white rounded-full shadow-lg shadow-black/40 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 backdrop-blur-sm" title="设置背景"><ImageIcon size={18} /></button>
+              <button onClick={() => setIsWebDavModalOpen(true)} className="w-12 h-12 bg-cyan-600/90 hover:bg-cyan-500 text-white rounded-full shadow-lg shadow-cyan-900/40 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 backdrop-blur-sm" title="WebDAV"><Settings size={18} /></button>
+              <button onClick={() => importInputRef.current?.click()} className="w-12 h-12 bg-violet-600/90 hover:bg-violet-500 text-white rounded-full shadow-lg shadow-violet-900/40 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 backdrop-blur-sm" title="导入书签"><Upload size={18} /></button>
+              <button onClick={() => setIsBatchMode(v => !v)} className={`w-12 h-12 text-white rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95 backdrop-blur-sm ${isBatchMode ? 'bg-amber-600/90 hover:bg-amber-500 shadow-amber-900/40' : 'bg-white/20 hover:bg-white/30 shadow-black/40'}`} title={isBatchMode ? '退出批量' : '批量删除'}><Trash2 size={18} /></button>
+              {isBatchMode && (
+                <>
+                  <button onClick={toggleSelectAllSites} className="w-12 h-12 bg-white/20 hover:bg-white/30 text-white rounded-full shadow-lg shadow-black/40 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 backdrop-blur-sm" title={selectedSiteIds.length === (activePage.sites || []).length && (activePage.sites || []).length > 0 ? '取消全选' : '全选'}><Check size={18} /></button>
+                  <button onClick={requestDeleteSelectedSites} disabled={selectedSiteIds.length === 0} className="w-12 h-12 bg-red-600/90 hover:bg-red-500 disabled:opacity-50 disabled:hover:bg-red-600 text-white rounded-full shadow-lg shadow-red-900/40 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 backdrop-blur-sm" title={`删除选中 (${selectedSiteIds.length})`}><Trash2 size={18} /></button>
+                </>
+              )}
+              <button onClick={() => { setEditingSite(null); setIsModalOpen(true); }} className="w-12 h-12 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg shadow-blue-900/50 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 backdrop-blur-sm" title="添加站点"><Plus size={20} /></button>
+              <button onClick={handleLogout} className="w-12 h-12 bg-red-600/80 hover:bg-red-500 text-white rounded-full shadow-lg shadow-red-900/30 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 backdrop-blur-sm" title="退出登录"><LogOut size={18} /></button>
             </>
           )}
         </div>
+        <input
+          ref={importInputRef}
+          type="file"
+          accept=".html,text/html"
+          className="hidden"
+          onChange={handleImportBookmarks}
+        />
       </div>
 
       {isLoginModalOpen && <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />}
@@ -844,35 +829,6 @@ function LoginModal({ isOpen, onClose }) {
         <button onClick={onClose} className="absolute top-4 right-4 text-white/30 hover:text-white"><X size={20}/></button>
       </div>
     </div>
-  );
-}
-
-function Sidebar({ isOpen, setIsOpen, pages, activePageId, setActivePageId, enableAdmin, onAddPage, onRenamePage, onDeletePage, setEditingPage, editingPage, showTrigger }) {
-  const [newPageName, setNewPageName] = useState('');
-  const [editingName, setEditingName] = useState('');
-  const inputRef = useRef(null);
-  useEffect(() => { if (editingPage && inputRef.current) { setEditingName(editingPage.name); inputRef.current.focus(); } }, [editingPage]);
-  useEffect(() => { const handleClickOutside = (e) => { if (isOpen && !e.target.closest('.sidebar-container') && !e.target.closest('.sidebar-trigger')) setIsOpen(false); }; document.addEventListener('mousedown', handleClickOutside); return () => document.removeEventListener('mousedown', handleClickOutside); }, [isOpen, setIsOpen]);
-  if (!showTrigger) return null;
-  return (
-    <>
-      <button onClick={() => setIsOpen(!isOpen)} className={`sidebar-trigger fixed top-4 left-4 z-50 p-2 rounded-lg bg-black/20 hover:bg-white/10 text-white/70 hover:text-white backdrop-blur-md transition-all duration-300 ${isOpen ? 'translate-x-64 opacity-0 pointer-events-none' : 'translate-x-0'}`}><Menu size={24} /></button>
-      <div className={`sidebar-container fixed top-0 left-0 bottom-0 w-72 bg-gray-900/95 backdrop-blur-xl border-r border-white/5 shadow-2xl z-50 transform transition-transform duration-300 flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="p-6 border-b border-white/10 flex justify-between items-center bg-black/20"><h2 className="text-xl font-bold text-white flex items-center gap-2"><LayoutGrid size={20} className="text-blue-400"/> 导航面板 </h2><button onClick={() => setIsOpen(false)} className="text-white/40 hover:text-white p-1 hover:bg-white/10 rounded-md transition"><X size={20} /></button></div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
-           {pages.map(page => (
-             <div key={page.id} className={`group flex items-center justify-between p-3 rounded-xl transition-all cursor-pointer border border-transparent ${activePageId === page.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'hover:bg-white/5 text-white/70 hover:text-white hover:border-white/5'}`} onClick={() => { if (editingPage?.id !== page.id) { setActivePageId(page.id); setIsOpen(false); } }}>
-               {editingPage?.id === page.id ? (
-                 <div className="flex-1 flex gap-2" onClick={e => e.stopPropagation()}><input ref={inputRef} type="text" value={editingName} onChange={e => setEditingName(e.target.value)} className="flex-1 bg-black/30 border border-white/20 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-blue-400" onKeyDown={e => { if (e.key === 'Enter') onRenamePage(page.id, editingName); if (e.key === 'Escape') setEditingPage(null); }}/><button onClick={() => onRenamePage(page.id, editingName)} className="text-green-400 hover:bg-green-400/20 p-1 rounded"><Check size={14} /></button><button onClick={() => setEditingPage(null)} className="text-red-400 hover:bg-red-400/20 p-1 rounded"><X size={14} /></button></div>
-               ) : (
-                 <><div className="flex items-center gap-3"><FileText size={16} className={activePageId === page.id ? 'text-white/90' : 'text-white/40'} /><span className="font-medium truncate max-w-[140px]">{page.name}</span></div>{enableAdmin && (<div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}><button onClick={() => setEditingPage(page)} className={`p-1.5 rounded-md hover:bg-black/20 ${activePageId === page.id ? 'text-white/80 hover:text-white' : 'text-white/40 hover:text-white'}`}><Edit2 size={12} /></button><button onClick={() => onDeletePage(page.id)} className={`p-1.5 rounded-md hover:bg-black/20 ${activePageId === page.id ? 'text-white/80 hover:text-red-200' : 'text-white/40 hover:text-red-400'}`}><Trash2 size={12} /></button></div>)}</>
-               )}
-             </div>
-           ))}
-        </div>
-        {enableAdmin && (<div className="p-4 border-t border-white/10 bg-black/20"><div className="flex gap-2"><input type="text" value={newPageName} onChange={e => setNewPageName(e.target.value)} placeholder="新页面名称" className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 text-sm text-white focus:outline-none focus:border-blue-500 transition" onKeyDown={e => { if (e.key === 'Enter' && newPageName) { onAddPage(newPageName); setNewPageName(''); } }}/><button onClick={() => { if (newPageName) { onAddPage(newPageName); setNewPageName(''); } }} disabled={!newPageName} className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 text-white p-2 rounded-lg transition"><Plus size={18} /></button></div></div>)}
-      </div>
-    </>
   );
 }
 
