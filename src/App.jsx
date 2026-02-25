@@ -1524,7 +1524,8 @@ const getDomainFromUrl = (url) => {
 const getFaviconUrl = (url) => {
   const domain = getDomainFromUrl(url);
   if (!domain) return '';
-  return `https://api.iowen.cn/favicon/${domain}.png`;
+  // 使用 cravatar.cn 服务，国内稳定
+  return `https://cravatar.cn/favicon/api/index.php?url=${domain}`;
 };
 
 function SiteModal({ isOpen, onClose, onSubmit, initialData, groups }) {
