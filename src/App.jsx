@@ -8,7 +8,6 @@ import {
   LayoutGrid,
   Image as ImageIcon,
   Search,
-  Zap,
   AlertTriangle,
   Settings,
   Lock,
@@ -1423,17 +1422,15 @@ function LoginModal({ isOpen, onClose }) {
 }
 
 function SiteCard({ site, isAdmin, onEdit, onDelete, className = "", isBatchMode = false, isSelected = false, onToggleSelect, isDragging = false }) {
-  const [faviconIndex, setFaviconIndex] = useState(0); // 当前尝试的 favicon 服务索引
   const [imgError, setImgError] = useState(false);
   const textContainerRef = useRef(null);
   const textRef = useRef(null);
   const [shouldScroll, setShouldScroll] = useState(false);
 
-  // 重置 favicon 索引当 site.logo 变化
+  // 重置错误状态当 site.url 变化
   useEffect(() => {
     setImgError(false);
-    setFaviconIndex(0);
-  }, [site.logo, site.url]);
+  }, [site.url]);
 
   useLayoutEffect(() => { if (textContainerRef.current && textRef.current) { setShouldScroll(textRef.current.scrollWidth > textContainerRef.current.clientWidth + 2); } }, [site.name, className]);
 
@@ -1441,38 +1438,8 @@ function SiteCard({ site, isAdmin, onEdit, onDelete, className = "", isBatchMode
   const hasInner = !!site.innerUrl;
   const isInnerOnly = !site.url && site.innerUrl;
 
-  // 计算当前应该显示的图标 URL
-  const domain = getDomainFromUrl(site.url || site.innerUrl || '');
-  const currentLogoUrl = useMemo(() => {
-    // 如果有自定义 logo 且不是自动 favicon，直接使用
-    if (site.logo && !site.useFavicon) {
-      return site.logo;
-    }
-    // 使用多源 favicon 服务
-    if (domain && faviconIndex < FAVICON_SERVICES.length) {
-      return FAVICON_SERVICES[faviconIndex](domain);
-    }
-    return site.logo || '';
-  }, [site.logo, site.useFavicon, domain, faviconIndex]);
-
-  // 图片加载失败时尝试下一个服务
-  const handleImgError = () => {
-    if (site.useFavicon || !site.logo) {
-      // 自动 favicon 模式，尝试下一个服务
-      if (faviconIndex < FAVICON_SERVICES.length - 1) {
-        setFaviconIndex(prev => prev + 1);
-      } else {
-        setImgError(true); // 所有服务都失败
-      }
-    } else {
-      // 自定义 logo 失败，尝试 favicon 服务
-      if (domain && faviconIndex < FAVICON_SERVICES.length - 1) {
-        setFaviconIndex(prev => prev + 1);
-      } else {
-        setImgError(true);
-      }
-    }
-  };
+  // 根据域名自动获取图标
+  const faviconUrl = getFaviconUrl(site.url || site.innerUrl || '');
 
   return (
     <div className={`group relative h-20 md:h-20 hover:bg-white/10 rounded-2xl transition-all duration-300 flex items-center px-3 overflow-hidden w-full card-hover ${isDragging ? 'opacity-50 scale-105 shadow-2xl bg-white/20' : ''} ${className}`}>
@@ -1488,7 +1455,7 @@ function SiteCard({ site, isAdmin, onEdit, onDelete, className = "", isBatchMode
         </button>
       )}
       <div className="relative z-10 w-14 h-14 flex-shrink-0 bg-white/5 rounded-xl p-1.5 flex items-center justify-center shadow-sm pointer-events-none">
-        {!imgError && currentLogoUrl ? <img src={currentLogoUrl} alt={site.name} className="w-full h-full object-contain drop-shadow-sm" onError={handleImgError} /> : <span className="text-xl font-bold text-white/40">{site.name.charAt(0).toUpperCase()}</span>}
+        {!imgError && faviconUrl ? <img src={faviconUrl} alt={site.name} className="w-full h-full object-contain drop-shadow-sm" onError={() => setImgError(true)} /> : <span className="text-xl font-bold text-white/40">{site.name.charAt(0).toUpperCase()}</span>}
       </div>
       <div className="relative z-10 flex-1 min-w-0 flex flex-col justify-center ml-3 overflow-hidden pointer-events-none" ref={textContainerRef}>
         <div className="w-full relative h-6 flex items-center">
@@ -1543,15 +1510,6 @@ function SortableSiteCard({ site, isAdmin, onEdit, onDelete, isBatchMode, isSele
   );
 }
 
-// 多源 favicon 服务列表
-const FAVICON_SERVICES = [
-  (domain) => `https://icons.duckduckgo.com/ip3/${domain}.ico`,
-  (domain) => `https://www.google.com/s2/favicons?sz=128&domain=${domain}`,
-  (domain) => `https://favicon.im/${domain}`,
-  (domain) => `https://api.iowen.cn/favicon/${domain}.png`,
-  (domain) => `https://${domain}/favicon.ico`,
-];
-
 // 辅助函数：从 URL 提取域名
 const getDomainFromUrl = (url) => {
   try {
@@ -1562,67 +1520,40 @@ const getDomainFromUrl = (url) => {
   }
 };
 
-// 辅助函数：计算 favicon URL（默认使用第一个服务）
+// 辅助函数：获取 favicon URL（使用稳定的 API 服务）
 const getFaviconUrl = (url) => {
   const domain = getDomainFromUrl(url);
   if (!domain) return '';
-  return FAVICON_SERVICES[0](domain);
+  return `https://api.iowen.cn/favicon/${domain}.png`;
 };
 
 function SiteModal({ isOpen, onClose, onSubmit, initialData, groups }) {
   const [formData, setFormData] = useState({
     name: '',
     url: '',
-    logo: '',
     group: groups[0] || '默认',
     pinned: false,
-    useFavicon: false,
   });
 
   useEffect(() => {
     if (initialData) {
-      const initialUseFavicon = initialData.useFavicon ?? (initialData.url && initialData.logo === getFaviconUrl(initialData.url));
       // 兼容旧数据：优先用url，没有则用innerUrl
       const mergedUrl = initialData.url || initialData.innerUrl || '';
       setFormData({
         name: initialData.name || '',
         url: mergedUrl,
-        logo: initialData.logo || '',
         group: initialData.group || groups[0] || '默认',
         pinned: !!initialData.pinned,
-        useFavicon: !!initialUseFavicon,
       });
     } else {
       setFormData({
         name: '',
         url: '',
-        logo: '',
         group: groups[0] || '默认',
         pinned: false,
-        useFavicon: false,
       });
     }
   }, [initialData, groups]);
-
-  useEffect(() => {
-    if (formData.useFavicon && formData.url) {
-      const iconUrl = getFaviconUrl(formData.url);
-      if (iconUrl) {
-        setFormData(prev => (prev.logo !== iconUrl ? { ...prev, logo: iconUrl } : prev));
-      }
-    }
-  }, [formData.useFavicon, formData.url]);
-
-  const handleAutoMatch = () => {
-    if (!formData.name) return;
-    const slug = formData.name.trim().toLowerCase().replace(/\s+/g, '-');
-    const newLogoUrl = `https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/${slug}.png`;
-    setFormData(prev => ({ ...prev, logo: newLogoUrl, useFavicon: false }));
-  };
-
-  const handleLogoChange = (e) => {
-    setFormData({ ...formData, logo: e.target.value, useFavicon: false });
-  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -1633,8 +1564,8 @@ function SiteModal({ isOpen, onClose, onSubmit, initialData, groups }) {
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
-      <div className="relative z-10 backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl w-full max-w-md shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-6">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-md animate-[fadeInUp_0.2s_ease-out]" onClick={onClose} />
+      <div className="relative z-10 backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl w-full max-w-md shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-6 animate-fade-in-scale">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
             <Plus size={20} className="text-blue-400" />
@@ -1677,42 +1608,7 @@ function SiteModal({ isOpen, onClose, onSubmit, initialData, groups }) {
               onChange={e => setFormData({ ...formData, url: e.target.value })}
               placeholder="https://..."
             />
-          </div>
-          <div>
-            <label className="block text-xs text-white/50 font-medium mb-2 ml-1">图标</label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                className="flex-1 bg-white/10 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/40 focus:border-blue-500/50 focus:outline-none text-sm font-mono truncate transition-all"
-                value={formData.logo}
-                onChange={handleLogoChange}
-                placeholder="图标 URL..."
-              />
-              <button
-                type="button"
-                onClick={handleAutoMatch}
-                className="px-3 bg-gradient-to-r from-indigo-500/30 to-purple-500/30 hover:from-indigo-500/50 hover:to-purple-500/50 text-indigo-200 border border-indigo-500/30 rounded-xl flex items-center justify-center transition-all"
-                title="根据名称自动获取图标"
-              >
-                <Zap size={16} />
-              </button>
-              <div className="w-11 h-11 bg-white/10 rounded-xl p-1.5 flex items-center justify-center border border-white/10 shrink-0 overflow-hidden">
-                {formData.logo ? (
-                  <img src={formData.logo} className="w-full h-full object-contain" alt="预览" onError={(e) => e.target.style.display='none'} />
-                ) : (
-                  <div className="text-xs text-white/30">?</div>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center justify-between mt-2">
-              <p className="text-[10px] text-white/30">自动匹配使用 homarr-labs 源</p>
-              <label className="flex items-center gap-2 cursor-pointer text-xs text-white/60 hover:text-white transition whitespace-nowrap ml-2 select-none group">
-                <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${formData.useFavicon ? 'bg-blue-500 border-blue-500' : 'border-white/30 group-hover:border-white/50'}`}>
-                  {formData.useFavicon && <Check size={10} className="text-white" />}
-                </div>
-                <span onClick={() => setFormData(prev => ({ ...prev, useFavicon: !prev.useFavicon }))}>使用站点图标</span>
-              </label>
-            </div>
+            <p className="text-[10px] text-white/30 mt-1.5 ml-1">图标将自动从网址获取</p>
           </div>
           {/* 置顶选项 */}
           <div
