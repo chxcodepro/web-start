@@ -1,115 +1,82 @@
-# **Janky Nav 🧭**
+﻿# 导航主页（Nav）
 
-一个基于 **React** \+ **Vite** \+ **Firebase** 的极简个人导航页。支持 **Google 登录** 和 **多端实时同步**。
+一个基于 **React + Vite + Firebase** 的个人导航页项目，支持管理员登录、站点管理、分组管理、云端同步和书签导入。
 
-## **✨ 预览地址：[https://ce-nav.vercel.app](https://ce-nav.vercel.app)**
+## 在线预览
 
-<!-- 📷 预览图区域 Start -->
+- 预览地址（Vercel）：[https://ce-nav.vercel.app](https://ce-nav.vercel.app)
+
+## 页面预览
 
 <p align="center">
-<img src="https://pic.9989.us/20260130101605812.png" alt="PC端主界面" width="45%" />
-<img src="https://pic.9989.us/20260130101605814.png" alt="移动端适配" width="45%" />
-<img src="https://pic.9989.us/20260130101605815.png" alt="可视化编辑" width="45%" />
-<img src="https://pic.9989.us/20260130101605816.png" alt="安全登录" width="45%" />
+  <img src="https://pic.9989.us/20260130101605812.png" alt="PC 端界面" width="45%" />
+  <img src="https://pic.9989.us/20260130101605814.png" alt="移动端适配" width="45%" />
+  <img src="https://pic.9989.us/20260130101605815.png" alt="可视化编辑" width="45%" />
+  <img src="https://pic.9989.us/20260130101605816.png" alt="管理员登录" width="45%" />
 </p>
-<!-- 📷 预览图区域 End -->
 
-## **✨ 特性**
+## 功能特性
 
-* ☁️ **云端同步**：修改即时保存，多设备同步。  
-* 🔐 **安全登录**：仅管理员（Google 账号）可修改。  
-* 🛠 **可视化管理**：拖拽排序、在线编辑、自动获取图标。  
-* 🎨 **极简设计**：自适应壁纸，磨砂玻璃 UI。
+- 云端同步：配置修改后自动保存到 Firebase。
+- 管理员权限：仅管理员可进行增删改操作。
+- 可视化管理：页面、分组、站点均可在 UI 中管理。
+- 书签导入：支持导入浏览器书签 HTML，自动按文件夹生成页面和分组。
+- 批量删除：支持单选、全选、批量删除站点。
 
-## **🚀 部署教程 (Vercel \+ Firebase)**
+## 部署说明（Vercel + Firebase）
 
-### **1\. 配置 Firebase (后端)**
+### 1. 配置 Firebase
 
-1. 访问 [Firebase 控制台](https://console.firebase.google.com/)，**创建一个项目**。  
-2. **创建数据库**：  
-   * 菜单选择 **构建** \-\> **Firestore Database** \-\> **创建数据库**。  
-   * 选择-**"标准版"**-**"位置推荐 Tokyo/HongKong 等"**
-   * 选择 **"以测试模式开始"**。  点击创建
-3. **开启登录**：  
-   * 菜单选择 **构建** \-\> **Authentication** \-\> **开始**。  
-   * 在 **登录提供方** 中选择 **Google** \-\> **启用** \-\>  **选择项目支持邮箱** \-\>保存。  
-4. **获取密钥**：  
-   * 点击左上角 **项目概览** 旁的 ⚙️ \-\> **常规**。  
-   * 拉到网页底部-您的应用-在底部点击中间的  **\</>** 图标注册 Web 应用。  
-    * 自行输入 **"应用别名"**-**"不要勾选同时为此应用设置 Firebase Hosting。"**-点击**"注册应用"**
-   * 复制生成的 const firebaseConfig \= { ... }; 代码块中以下部分数据（拷贝下来，第三步要用）
-   
-```javascript
-  const firebaseConfig = {
-  apiKey: "xxxxxxxxxxx",
-  authDomain: "xxxxxxxxxxx",
-  projectId: "xxxxxxxxxxx",
-  storageBucket: "xxxxxxxxxxx",
-  messagingSenderId: "xxxxxxxxxxx",
-  appId: "1:xxxxxxxxxxx",
-  measurementId: "xxxxxxxxxxx"
+1. 进入 [Firebase 控制台](https://console.firebase.google.com/) 创建项目。
+2. 开启 Firestore Database（测试阶段可先使用测试模式）。
+3. 开启 Authentication，并启用 Google 登录。
+4. 在项目设置中创建 Web 应用，获取 `firebaseConfig`。
+5. 将 `src/App.jsx` 中的 Firebase 配置替换为你自己的配置。
+
+示例：
+
+```js
+const firebaseConfig = {
+  apiKey: "xxxx",
+  authDomain: "xxxx",
+  projectId: "xxxx",
+  storageBucket: "xxxx",
+  messagingSenderId: "xxxx",
+  appId: "xxxx",
+  measurementId: "xxxx"
 };
 ```
 
+### 2. 部署到 Vercel
 
+1. 把项目推送到 GitHub。
+2. 在 Vercel 导入该仓库并部署。
+3. 部署完成后，在 Firebase Authentication 的“已获授权域名”中加入你的 Vercel 域名。
 
-### **2. 部署到 Vercel (获取仓库)**
+## Firestore 安全规则（推荐）
 
-**直接点击下方按钮一键克隆并部署：**
+建议把写权限限制为你的管理员账号：
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/pal537/Janky-Nav)
-
-**部署步骤：**
-1. 点击按钮后，跳转至 Vercel，提示 **Create Git Repository**。
-2. 选择你的 GitHub 账号，点击 **Create**。
-3. 等待约 1 分钟，Vercel 会自动完成部署。
-   * *⚠️ 注意：此时网页打开可能是一片空白或报错，因为还没有填入配置，这是正常的！*
-4. 点击 **Continue to Dashboard**，然后点击 **View Repository** 进入你刚才生成的 GitHub 仓库。
-
-### **3. 配置代码 (前端)**
-
-1. 在 **你自己的 GitHub 仓库** 中，找到文件 `src/App.jsx`。
-2. 点击文件右上角的 ✏️ (Edit) 图标进入编辑模式。
-3. 找到代码顶部的 顶部`Firebase 配置`部分。
-4. 用 **第 1 步** 中获取的真实数据替换掉原本的空数据。
-5. 点击右上角 **Commit changes** 提交保存。
-   * *提交后，Vercel 会自动触发重新部署。等待 1 分钟后刷新你的网站，即可正常使用。*
-   
-   
-### **4\. 添加白名单 (关键一步！)**
-
-1. 回到 Firebase 控制台 \-\> **Authentication** \-\> **设置 (Settings)**。  
-2. 在 **已获授权的网域** 中，点击 **添加网域**。  
-3. 填入 Vercel 分配的域名（不带 https://）或 **自己绑定的域名**。  
-   * *否则登录时弹窗会闪退报错！*
-
-## **🛡️ 安全设置 (推荐)**
-
-为了防止他人修改数据，建议在 Firebase 控制台 \-\> **Firestore Database** \-\> **规则 (Rules)** 中修改为：
-```javascript
+```js
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /{document=**} {
-      
-      // 【读取权限】：所有人可见（包括没登录的路人）
       allow read: if true;
-      
-      // 【写入权限】：只有你（在这个具体邮箱登录时）可以编辑
-      // ⚠️请务必把下面的 "你的邮箱@gmail.com" 换成你真实的 Google 账号邮箱
-      allow write: if request.auth.token.email == "你的邮箱@gmail.com";
-      
+      allow write: if request.auth != null
+        && request.auth.token.email == "你的管理员邮箱@gmail.com";
     }
   }
 }
 ```
 
+## 本地开发
 
-## **🛠 本地开发**
-
-npm install  
+```bash
+npm install
 npm run dev
+```
 
-## **📄 License**
+## 许可证
 
 MIT
