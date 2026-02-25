@@ -657,8 +657,49 @@ export default function App() {
   };
 
   const addGroup = (name) => {
-    if (!name) return;
-    updateCurrentPageData(p => { if (p.groups.includes(name)) return p; return { ...p, groups: [...p.groups, name] }; });
+    const nextName = String(name || '').trim();
+    if (!nextName) return false;
+    if (activePage.groups.includes(nextName)) {
+      alert('分组已存在，请换个名称。');
+      return false;
+    }
+    updateCurrentPageData(p => ({ ...p, groups: [...p.groups, nextName] }));
+    return true;
+  };
+
+  const renameGroup = (oldName, newName) => {
+    const oldKey = String(oldName || '').trim();
+    const nextName = String(newName || '').trim();
+    if (!oldKey || !nextName) {
+      alert('分组名称不能为空。');
+      return false;
+    }
+    if (oldKey === nextName) {
+      alert('分组名称未变化。');
+      return false;
+    }
+    if (activePage.groups.some(group => group === nextName && group !== oldKey)) {
+      alert('分组已存在，请换个名称。');
+      return false;
+    }
+    updateCurrentPageData((p) => ({
+      ...p,
+      groups: p.groups.map(group => (group === oldKey ? nextName : group)),
+      sites: p.sites.map(site => (site.group === oldKey ? { ...site, group: nextName } : site)),
+    }));
+    return true;
+  };
+
+  const moveGroup = (groupName, direction) => {
+    updateCurrentPageData((p) => {
+      const currentIndex = p.groups.indexOf(groupName);
+      if (currentIndex < 0) return p;
+      const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+      if (targetIndex < 0 || targetIndex >= p.groups.length) return p;
+      const nextGroups = [...p.groups];
+      [nextGroups[currentIndex], nextGroups[targetIndex]] = [nextGroups[targetIndex], nextGroups[currentIndex]];
+      return { ...p, groups: nextGroups };
+    });
   };
 
   const requestRemoveGroup = (name) => {
@@ -890,7 +931,17 @@ export default function App() {
       {isLoginModalOpen && <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />}
       {isModalOpen && <SiteModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={saveSite} initialData={editingSite} groups={activePage.groups} />}
       {isBgModalOpen && <BgModal isOpen={isBgModalOpen} onClose={() => setIsBgModalOpen(false)} currentBg={bgImage} onSave={saveBgToCloud} />}
-      {isGroupModalOpen && <GroupModal isOpen={isGroupModalOpen} onClose={() => setIsGroupModalOpen(false)} groups={activePage.groups} onAdd={addGroup} onRemove={requestRemoveGroup} />}
+      {isGroupModalOpen && (
+        <GroupModal
+          isOpen={isGroupModalOpen}
+          onClose={() => setIsGroupModalOpen(false)}
+          groups={activePage.groups}
+          onAdd={addGroup}
+          onRemove={requestRemoveGroup}
+          onRename={renameGroup}
+          onMove={moveGroup}
+        />
+      )}
       {isWebDavModalOpen && (
         <WebDavModal
           isOpen={isWebDavModalOpen}
@@ -1149,8 +1200,24 @@ function BgModal({ isOpen, onClose, currentBg, onSave }) {
   );
 }
 
-function GroupModal({ isOpen, onClose, groups, onAdd, onRemove }) {
+function GroupModal({ isOpen, onClose, groups, onAdd, onRemove, onRename, onMove }) {
   const [newGroup, setNewGroup] = useState('');
+  const [editingGroup, setEditingGroup] = useState('');
+  const [editingName, setEditingName] = useState('');
+
+  const startEditGroup = (name) => {
+    setEditingGroup(name);
+    setEditingName(name);
+  };
+
+  const handleSaveGroupName = () => {
+    const ok = onRename(editingGroup, editingName);
+    if (!ok) return;
+    alert('分组名称已保存。');
+    setEditingGroup('');
+    setEditingName('');
+  };
+
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
@@ -1162,13 +1229,60 @@ function GroupModal({ isOpen, onClose, groups, onAdd, onRemove }) {
         </div>
         <div className="flex gap-2 mb-6">
           <input type="text" value={newGroup} onChange={e => setNewGroup(e.target.value)} placeholder="新分组名称" className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 text-white focus:border-green-500 focus:outline-none" />
-          <button onClick={() => { onAdd(newGroup); setNewGroup(''); }} disabled={!newGroup} className="px-4 py-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 disabled:hover:bg-green-600 text-white rounded-xl font-medium transition">添加</button>
+          <button
+            onClick={() => {
+              const ok = onAdd(newGroup);
+              if (!ok) return;
+              setNewGroup('');
+            }}
+            disabled={!newGroup}
+            className="px-4 py-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 disabled:hover:bg-green-600 text-white rounded-xl font-medium transition"
+          >
+            添加
+          </button>
         </div>
         <div className="max-h-60 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-          {groups.map(g => (
-            <div key={g} className="flex justify-between items-center bg-white/5 p-3 rounded-xl border border-white/5 hover:border-white/10 transition">
-              <span className="text-white font-medium pl-1">{g}</span>
-              <button onClick={() => onRemove(g)} className="text-white/30 hover:text-red-400 p-1.5 transition rounded-lg hover:bg-white/5"><Trash2 size={16} /></button>
+          {groups.map((g, index) => (
+            <div key={g} className="bg-white/5 p-3 rounded-xl border border-white/5 hover:border-white/10 transition">
+              {editingGroup === g ? (
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={editingName}
+                    onChange={e => setEditingName(e.target.value)}
+                    placeholder="输入新分组名称"
+                    className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 focus:outline-none"
+                  />
+                  <div className="flex gap-2">
+                    <button onClick={handleSaveGroupName} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs transition">保存名称</button>
+                    <button onClick={() => { setEditingGroup(''); setEditingName(''); }} className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs transition">取消</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex justify-between items-center">
+                  <span className="text-white font-medium pl-1">{g}</span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => onMove(g, 'up')}
+                      disabled={index === 0}
+                      className="px-2 py-1 text-xs text-white/70 hover:text-white disabled:opacity-30 transition rounded hover:bg-white/5"
+                      title="上移"
+                    >
+                      上移
+                    </button>
+                    <button
+                      onClick={() => onMove(g, 'down')}
+                      disabled={index === groups.length - 1}
+                      className="px-2 py-1 text-xs text-white/70 hover:text-white disabled:opacity-30 transition rounded hover:bg-white/5"
+                      title="下移"
+                    >
+                      下移
+                    </button>
+                    <button onClick={() => startEditGroup(g)} className="text-white/40 hover:text-blue-400 p-1.5 transition rounded-lg hover:bg-white/5" title="重命名"><Edit2 size={16} /></button>
+                    <button onClick={() => onRemove(g)} className="text-white/30 hover:text-red-400 p-1.5 transition rounded-lg hover:bg-white/5" title="删除"><Trash2 size={16} /></button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
