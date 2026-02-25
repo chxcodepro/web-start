@@ -665,6 +665,21 @@ export default function App() {
     setEditingSite(null);
   };
 
+  // 批量添加站点
+  const saveSitesBatch = (sitesData) => {
+    if (!sitesData || sitesData.length === 0) return;
+    updateCurrentPageData(p => {
+      const newSites = sitesData.map((site, index) => ({
+        ...site,
+        id: `${Date.now()}-${index}`,
+      }));
+      return { ...p, sites: [...p.sites, ...newSites] };
+    });
+    setIsModalOpen(false);
+    setEditingSite(null);
+    showToast(`成功添加 ${sitesData.length} 个站点`, 'success');
+  };
+
   // 拖拽排序处理
   const handleDragStart = (event) => {
     setActiveDragId(event.active.id);
@@ -1146,7 +1161,7 @@ export default function App() {
 
       {/* 弹窗组件 */}
       {isLoginModalOpen && <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />}
-      {isModalOpen && <SiteModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={saveSite} initialData={editingSite} groups={activePage.groups} />}
+      {isModalOpen && <SiteModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={saveSite} onBatchSubmit={saveSitesBatch} initialData={editingSite} groups={activePage.groups} />}
       {isBgModalOpen && <BgModal isOpen={isBgModalOpen} onClose={() => setIsBgModalOpen(false)} currentBg={bgImage} onSave={saveBgToCloud} />}
       {isGroupModalOpen && (
         <GroupModal
