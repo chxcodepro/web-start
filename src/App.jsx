@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
+import { useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
 import { 
   Plus, 
   Edit2, 
   Trash2, 
   X, 
   Check, 
-  Globe, 
   LayoutGrid, 
   Image as ImageIcon,
   Search,
@@ -98,6 +97,7 @@ const DEFAULT_WEB_DAV_CONFIG = {
 };
 const SINGLE_PAGE_ID = 'home';
 const SINGLE_PAGE_NAME = '首页';
+const BOOKMARK_UNGROUPED_GROUP = '未分组的书签';
 
 const normalizeWebDavConfig = (config) => ({
   ...DEFAULT_WEB_DAV_CONFIG,
@@ -175,7 +175,6 @@ const mergePagesToSingle = (rawPages) => {
 export default function App() {
   const [pages, setPages] = useState([]); 
   const [isLoading, setIsLoading] = useState(true);
-  const [isDbConnected, setIsDbConnected] = useState(false);
   const [user, setUser] = useState(null); 
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   
@@ -220,7 +219,6 @@ export default function App() {
         const data = docSnap.data();
         if (data.pages) setPages(data.pages);
         if (data.bgImage) setBgImage(data.bgImage); else setBgImage(DEFAULT_BG);
-        setIsDbConnected(true);
       } else {
         setDoc(doc(db, "nav_data", "main"), { pages: DEFAULT_PAGES, bgImage: DEFAULT_BG });
         setPages(DEFAULT_PAGES);
@@ -242,7 +240,7 @@ export default function App() {
 
   useEffect(() => {
     if (isLoading || !isAdmin || pages.length <= 1) return;
-    savePagesToCloud([activePage]);
+    savePagesToCloud([activePage], { silent: true }).catch(() => {});
   }, [isLoading, isAdmin, pages, activePage]);
 
   useEffect(() => {
@@ -267,13 +265,21 @@ export default function App() {
     try { await signOut(auth); alert("已退出管理员模式"); } catch (error) { console.error(error); }
   };
 
-  const savePagesToCloud = async (newPages) => {
-    if (!isAdmin) { alert("请先登录管理员账号"); return; }
+  const savePagesToCloud = async (newPages, options = {}) => {
+    const { silent = false } = options;
+    if (!isAdmin) {
+      const detail = "请先登录管理员账号";
+      if (!silent) alert(detail);
+      throw new Error(detail);
+    }
     const normalizedPages = [mergePagesToSingle(newPages)];
     try { 
       await setDoc(doc(db, "nav_data", "main"), { pages: normalizedPages }, { merge: true }); 
     } catch (e) { 
-      console.error("保存失败:", e); alert("保存失败，请检查登录状态。"); 
+      const detail = e?.message || "保存失败，请检查登录状态。";
+      console.error("保存失败:", e);
+      if (!silent) alert(`保存失败：${detail}`);
+      throw new Error(detail);
     }
   };
 
@@ -393,19 +399,6 @@ export default function App() {
     }
   };
 
-  const getUniquePageName = (baseName, usedNames) => {
-    const seed = (baseName || '').trim() || '导入页面';
-    if (!usedNames.has(seed)) {
-      usedNames.add(seed);
-      return seed;
-    }
-    let suffix = 2;
-    while (usedNames.has(`${seed}(${suffix})`)) suffix += 1;
-    const finalName = `${seed}(${suffix})`;
-    usedNames.add(finalName);
-    return finalName;
-  };
-
   const parseBookmarkDl = (dlNode) => {
     if (!dlNode) return [];
     const items = [];
@@ -440,79 +433,62 @@ export default function App() {
     return items;
   };
 
-  const buildPagesFromBookmarkHtml = (htmlText) => {
+  const buildBookmarkImportData = (htmlText) => {
     const parser = new DOMParser();
     const docObj = parser.parseFromString(htmlText, 'text/html');
     const rootDl = docObj.querySelector('DL');
-    if (!rootDl) return [];
+    if (!rootDl) return { groups: [], sites: [] };
 
     const rootItems = parseBookmarkDl(rootDl);
-    const rootFolders = rootItems.filter(item => item.type === 'folder');
-    const pageFolders = (
-      rootFolders.length === 1 &&
-      rootFolders[0].children?.some(child => child.type === 'folder')
-    )
-      ? rootFolders[0].children.filter(child => child.type === 'folder')
-      : rootFolders;
+    const groups = [];
+    const groupSet = new Set();
+    const sites = [];
+    const importSeed = Date.now();
 
-    const usedNames = new Set((pages || []).map(p => p.name));
-    const importedPages = [];
+    const ensureGroup = (groupName) => {
+      const normalized = (groupName || '').trim() || BOOKMARK_UNGROUPED_GROUP;
+      if (!groupSet.has(normalized)) {
+        groupSet.add(normalized);
+        groups.push(normalized);
+      }
+      return normalized;
+    };
 
-    pageFolders.forEach((pageFolder, pageIndex) => {
-      const groups = [];
-      const groupSet = new Set();
-      const sites = [];
-
-      const ensureGroup = (groupName) => {
-        const normalized = (groupName || '').trim() || '默认';
-        if (!groupSet.has(normalized)) {
-          groupSet.add(normalized);
-          groups.push(normalized);
-        }
-        return normalized;
-      };
-
-      const walkItems = (items, currentGroup = '默认') => {
-        items.forEach((item) => {
-          if (item.type === 'folder') {
-            const nextGroup = ensureGroup(item.name);
-            walkItems(item.children || [], nextGroup);
-            return;
-          }
-
-          if (item.type === 'link') {
-            const href = (item.href || '').trim();
-            if (!/^https?:\/\//i.test(href)) return;
-            let safeName = (item.name || '').trim();
-            if (!safeName) {
-              try { safeName = new URL(href).hostname; } catch (e) { safeName = href; }
-            }
-            sites.push({
-              id: `import-${Date.now()}-${pageIndex}-${sites.length}`,
-              name: safeName,
-              url: href,
-              innerUrl: '',
-              logo: getFaviconUrl(href),
-              group: ensureGroup(currentGroup),
-              pinned: false,
-              useFavicon: true,
-            });
-          }
-        });
-      };
-
-      walkItems(pageFolder.children || [], '默认');
-      if (sites.length === 0) return;
-
-      importedPages.push({
-        id: `page-${Date.now()}-${pageIndex}-${Math.random().toString(36).slice(2, 8)}`,
-        name: getUniquePageName(pageFolder.name, usedNames),
-        sites,
-        groups: groups.length > 0 ? groups : ['默认'],
+    const pushSite = (item, groupName) => {
+      const href = (item.href || '').trim();
+      if (!/^https?:\/\//i.test(href)) return;
+      let safeName = (item.name || '').trim();
+      if (!safeName) {
+        try { safeName = new URL(href).hostname; } catch (e) { safeName = href; }
+      }
+      const finalGroup = ensureGroup(groupName);
+      sites.push({
+        id: `import-${importSeed}-${sites.length}`,
+        name: safeName,
+        url: href,
+        innerUrl: '',
+        logo: getFaviconUrl(href),
+        group: finalGroup,
+        pinned: false,
+        useFavicon: true,
       });
-    });
+    };
 
-    return importedPages;
+    const walkItems = (items, currentGroup = BOOKMARK_UNGROUPED_GROUP) => {
+      items.forEach((item) => {
+        if (item.type === 'folder') {
+          const nextGroup = ensureGroup(item.name);
+          walkItems(item.children || [], nextGroup);
+          return;
+        }
+        if (item.type === 'link') {
+          pushSite(item, currentGroup);
+        }
+      });
+    };
+
+    walkItems(rootItems, BOOKMARK_UNGROUPED_GROUP);
+    return { groups, sites };
   };
 
   const handleImportBookmarks = async (event) => {
@@ -522,24 +498,32 @@ export default function App() {
 
     try {
       const htmlText = await file.text();
-      const importedPages = buildPagesFromBookmarkHtml(htmlText);
-      if (importedPages.length === 0) {
+      const importedData = buildBookmarkImportData(htmlText);
+      if (importedData.sites.length === 0) {
         alert('没有解析到可导入的书签内容。');
         return;
       }
-      const mergedPages = [mergePagesToSingle([...pages, ...importedPages])];
-      await savePagesToCloud(mergedPages);
-      alert(`导入成功：新增 ${importedPages.length} 个页面。`);
+      const importedPage = {
+        id: SINGLE_PAGE_ID,
+        name: SINGLE_PAGE_NAME,
+        groups: importedData.groups,
+        sites: importedData.sites,
+      };
+      const mergedPage = mergePagesToSingle([activePage, importedPage]);
+      await savePagesToCloud([mergedPage], { silent: true });
+      const groupCount = new Set(importedData.sites.map(site => site.group)).size;
+      alert(`导入成功：新增 ${importedData.sites.length} 个站点，归入 ${groupCount} 个分组。`);
     } catch (error) {
       console.error('导入书签失败:', error);
-      alert('导入失败，请确认书签 HTML 文件格式正确。');
+      const detail = error?.message || '请确认书签 HTML 文件格式正确。';
+      alert(`导入失败：${detail}`);
     }
   };
 
   const updateCurrentPageData = (updater) => {
     const nextPage = updater(activePage);
     const normalizedPage = mergePagesToSingle([nextPage]);
-    savePagesToCloud([normalizedPage]);
+    savePagesToCloud([normalizedPage]).catch(() => {});
   };
 
   const saveSite = (siteData) => {
