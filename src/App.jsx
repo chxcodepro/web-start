@@ -16,8 +16,7 @@ import {
   User,
   Loader2,
   Upload,
-  Download,
-  GripVertical
+  Download
 } from 'lucide-react';
 
 // --- 拖拽排序库 ---
@@ -228,6 +227,7 @@ export default function App() {
   const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+  const [isEngineDropdownOpen, setIsEngineDropdownOpen] = useState(false); // 搜索引擎下拉框状态
   const [searchEngine, setSearchEngine] = useState(() => {
     try {
       const saved = localStorage.getItem(SEARCH_ENGINE_STORAGE_KEY);
@@ -257,6 +257,7 @@ export default function App() {
   const [editingGroupInline, setEditingGroupInline] = useState(null);
   const [editingGroupInlineName, setEditingGroupInlineName] = useState('');
   const [importModalData, setImportModalData] = useState(null); // 书签导入弹窗数据
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' }); // Toast 提示状态
   const [webdavConfig, setWebdavConfig] = useState(() => {
     try {
       const saved = localStorage.getItem(WEB_DAV_STORAGE_KEY);
@@ -269,6 +270,12 @@ export default function App() {
   });
   const importInputRef = useRef(null);
   const [activeDragId, setActiveDragId] = useState(null);
+
+  // Toast 提示函数
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+  };
 
   // 拖拽传感器配置
   const sensors = useSensors(
@@ -389,14 +396,14 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    try { await signOut(auth); alert("已退出管理员模式"); } catch (error) { console.error(error); }
+    try { await signOut(auth); showToast('已退出管理员模式'); } catch (error) { console.error(error); }
   };
 
   const savePagesToCloud = async (newPages, options = {}) => {
     const { silent = false } = options;
     if (!isAdmin) {
       const detail = "请先登录管理员账号";
-      if (!silent) alert(detail);
+      if (!silent) showToast(detail, 'success');
       throw new Error(detail);
     }
     const normalizedPages = [mergePagesToSingle(newPages)];
@@ -405,19 +412,19 @@ export default function App() {
     } catch (e) { 
       const detail = e?.message || "保存失败，请检查登录状态。";
       console.error("保存失败:", e);
-      if (!silent) alert(`保存失败：${detail}`);
+      if (!silent) showToast(`保存失败：${detail}`, 'error');
       throw new Error(detail);
     }
   };
 
   const saveBgToCloud = async (url) => {
-    if (!isAdmin) { alert("请先登录管理员账号"); return; }
+    if (!isAdmin) { showToast('请先登录管理员账号', 'error'); return; }
     setBgImage(url);
     try {
       await setDoc(doc(db, "nav_data", "main"), { bgImage: url }, { merge: true });
     } catch (e) {
       console.error("保存背景失败:", e);
-      alert("背景同步失败，请检查网络。");
+      showToast('背景同步失败，请检查网络', 'error');
     }
   };
 
@@ -425,17 +432,17 @@ export default function App() {
     const normalized = normalizeWebDavConfig(nextConfig);
     setWebdavConfig(normalized);
     localStorage.setItem(WEB_DAV_STORAGE_KEY, JSON.stringify(normalized));
-    if (!silent) alert('WebDAV 配置已保存。');
+    if (!silent) showToast('WebDAV 配置已保存', 'success');
     return normalized;
   };
 
   const validateWebDavConfig = (config) => {
     if (!config.url || !config.username || !config.password) {
-      alert('请填写 WebDAV 地址、用户名和密码。');
+      showToast('请填写 WebDAV 地址、用户名和密码', 'error');
       return false;
     }
     if (!config.filePath) {
-      alert('请填写备份文件路径。');
+      showToast('请填写备份文件路径', 'error');
       return false;
     }
     return true;
@@ -451,7 +458,7 @@ export default function App() {
   };
 
   const handleWebDavBackup = async (configFromModal) => {
-    if (!isAdmin) { alert("请先登录管理员账号"); return; }
+    if (!isAdmin) { showToast('请先登录管理员账号', 'error'); return; }
     const config = persistWebDavConfig(configFromModal, { silent: true });
     if (!validateWebDavConfig(config)) return;
 
@@ -473,16 +480,16 @@ export default function App() {
       if (!response.ok) {
         throw new Error(payload?.error || `HTTP ${response.status}`);
       }
-      alert('WebDAV 备份成功。');
+      showToast('WebDAV 备份成功', 'success');
     } catch (error) {
       console.error('WebDAV 备份失败:', error);
       const detail = error?.message || '请检查 Vercel API 和 WebDAV 配置。';
-      alert(`WebDAV 备份失败：${detail}`);
+      showToast(`WebDAV 备份失败：${detail}`, 'error');
     }
   };
 
   const handleWebDavRestore = async (configFromModal) => {
-    if (!isAdmin) { alert("请先登录管理员账号"); return; }
+    if (!isAdmin) { showToast('请先登录管理员账号', 'error'); return; }
     const config = persistWebDavConfig(configFromModal, { silent: true });
     if (!validateWebDavConfig(config)) return;
 
@@ -518,11 +525,11 @@ export default function App() {
 
       setPages(restoredPages);
       setBgImage(restoredBgImage);
-      alert('WebDAV 恢复成功。');
+      showToast('WebDAV 恢复成功', 'success');
     } catch (error) {
       console.error('WebDAV 恢复失败:', error);
       const detail = error?.message || '请检查 Vercel API 和 WebDAV 配置。';
-      alert(`WebDAV 恢复失败：${detail}`);
+      showToast(`WebDAV 恢复失败：${detail}`, 'error');
     }
   };
 
@@ -627,7 +634,7 @@ export default function App() {
       const htmlText = await file.text();
       const importedData = buildBookmarkImportData(htmlText);
       if (importedData.sites.length === 0) {
-        alert('没有解析到可导入的书签内容。');
+        showToast('没有解析到可导入的书签内容', 'error');
         return;
       }
       // 打开导入弹窗让用户选择目标分组
@@ -635,7 +642,7 @@ export default function App() {
     } catch (error) {
       console.error('导入书签失败:', error);
       const detail = error?.message || '请确认书签 HTML 文件格式正确。';
-      alert(`导入失败：${detail}`);
+      showToast(`导入失败：${detail}`, 'error');
     }
   };
 
@@ -647,7 +654,7 @@ export default function App() {
       if (createNewGroup && targetGroup) {
         finalGroup = targetGroup.trim();
         if (!finalGroup) {
-          alert('请输入新分组名称');
+          showToast('请输入新分组名称', 'error');
           return;
         }
       }
@@ -664,11 +671,11 @@ export default function App() {
       };
       const mergedPage = mergePagesToSingle([activePage, importedPage]);
       await savePagesToCloud([mergedPage], { silent: true });
-      alert(`导入成功：新增 ${sitesWithGroup.length} 个站点，归入分组「${finalGroup}」。`);
+      showToast(`导入成功：新增 ${sitesWithGroup.length} 个站点，归入分组「${finalGroup}」`, 'success');
       setImportModalData(null);
     } catch (error) {
       console.error('导入书签失败:', error);
-      alert(`导入失败：${error?.message || '未知错误'}`);
+      showToast(`导入失败：${error?.message || '未知错误'}`, 'error');
     }
   };
 
@@ -790,7 +797,7 @@ export default function App() {
     const nextName = String(name || '').trim();
     if (!nextName) return false;
     if (activePage.groups.includes(nextName)) {
-      alert('分组已存在，请换个名称。');
+      showToast('分组已存在，请换个名称', 'error');
       return false;
     }
     updateCurrentPageData(p => ({ ...p, groups: [...p.groups, nextName] }));
@@ -801,15 +808,15 @@ export default function App() {
     const oldKey = String(oldName || '').trim();
     const nextName = String(newName || '').trim();
     if (!oldKey || !nextName) {
-      alert('分组名称不能为空。');
+      showToast('分组名称不能为空', 'error');
       return false;
     }
+    // 名称未变化时直接返回成功，不提示
     if (oldKey === nextName) {
-      alert('分组名称未变化。');
-      return false;
+      return true;
     }
     if (activePage.groups.some(group => group === nextName && group !== oldKey)) {
-      alert('分组已存在，请换个名称。');
+      showToast('分组已存在，请换个名称', 'error');
       return false;
     }
     updateCurrentPageData((p) => ({
@@ -903,6 +910,7 @@ export default function App() {
     <div className="min-h-screen w-full text-white relative font-sans selection:bg-purple-500 selection:text-white">
       <style>{`
         @keyframes marquee-scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        @keyframes fadeInDown { 0% { opacity: 0; transform: translate(-50%, -20px); } 100% { opacity: 1; transform: translate(-50%, 0); } }
         .animate-scroll-text { animation: marquee-scroll 6s linear infinite; min-width: fit-content; display: flex; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
@@ -927,23 +935,45 @@ export default function App() {
             {/* 搜索框容器 - 玻璃拟态 */}
             <div className="relative backdrop-blur-xl bg-white/10 rounded-full border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_32px_rgba(59,130,246,0.2)] transition-all duration-300">
               <form onSubmit={handleSearch} className="relative w-full flex items-center">
-                {/* 搜索引擎选择器 - 玻璃风格 */}
+                {/* 搜索引擎选择器 - 自定义下拉框 */}
                 <div className="relative">
-                  <select
-                    value={searchEngine}
-                    onChange={(e) => changeSearchEngine(e.target.value)}
-                    className="h-14 pl-5 pr-8 bg-transparent border-r border-white/10 text-white/90 focus:outline-none appearance-none cursor-pointer text-sm font-medium hover:text-white transition-colors"
+                  <button
+                    type="button"
+                    onClick={() => setIsEngineDropdownOpen(!isEngineDropdownOpen)}
+                    onBlur={() => setTimeout(() => setIsEngineDropdownOpen(false), 150)}
+                    className="h-14 pl-5 pr-8 bg-transparent border-r border-white/10 text-white/90 focus:outline-none cursor-pointer text-sm font-medium hover:text-white transition-colors flex items-center gap-2"
                   >
-                    {Object.entries(SEARCH_ENGINES).map(([key, engine]) => (
-                      <option key={key} value={key} className="bg-gray-900 text-white">{engine.name}</option>
-                    ))}
-                  </select>
+                    {SEARCH_ENGINES[searchEngine]?.name || 'Google'}
+                  </button>
                   {/* 下拉箭头 */}
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-white/40">
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" className={`transition-transform ${isEngineDropdownOpen ? 'rotate-180' : ''}`}>
                       <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
                     </svg>
                   </div>
+                  {/* 自定义下拉菜单 - 玻璃拟态 */}
+                  {isEngineDropdownOpen && (
+                    <div className="absolute top-full left-0 mt-2 z-50 backdrop-blur-xl bg-white/10 border border-white/20 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden min-w-[120px]">
+                      {Object.entries(SEARCH_ENGINES).map(([key, engine]) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => {
+                            changeSearchEngine(key);
+                            setIsEngineDropdownOpen(false);
+                          }}
+                          className={`w-full px-4 py-2.5 text-left text-sm font-medium transition-all flex items-center gap-2 ${
+                            searchEngine === key
+                              ? 'bg-white/20 text-white'
+                              : 'text-white/70 hover:bg-white/10 hover:text-white'
+                          }`}
+                        >
+                          {searchEngine === key && <Check size={14} className="text-cyan-400" />}
+                          <span className={searchEngine === key ? '' : 'pl-5'}>{engine.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 {/* 搜索输入框 */}
                 <input
@@ -1185,6 +1215,7 @@ export default function App() {
           onRemove={requestRemoveGroup}
           onRename={renameGroup}
           onMove={moveGroup}
+          showToast={showToast}
         />
       )}
       {importModalData && (
@@ -1219,6 +1250,23 @@ export default function App() {
                    <button onClick={confirmConfig.action} className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white transition font-medium shadow-lg shadow-red-900/30">删除</button>
                 </div>
              </div>
+          </div>
+        </div>
+      )}
+      {/* Toast 提示组件 - 玻璃拟态 */}
+      {toast.show && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[200] animate-[fadeInDown_0.3s_ease-out]">
+          <div className={`px-5 py-3 rounded-2xl backdrop-blur-xl border shadow-[0_8px_32px_rgba(0,0,0,0.3)] flex items-center gap-3 ${
+            toast.type === 'success'
+              ? 'bg-emerald-500/20 border-emerald-400/30 text-emerald-300'
+              : 'bg-red-500/20 border-red-400/30 text-red-300'
+          }`}>
+            {toast.type === 'success' ? (
+              <Check size={18} className="text-emerald-400" />
+            ) : (
+              <AlertTriangle size={18} className="text-red-400" />
+            )}
+            <span className="text-sm font-medium">{toast.message}</span>
           </div>
         </div>
       )}
@@ -1314,19 +1362,16 @@ function SortableSiteCard({ site, isAdmin, onEdit, onDelete, isBatchMode, isSele
     zIndex: isDragging ? 50 : undefined,
   };
 
+  // 管理员模式下整个卡片可拖拽
+  const dragProps = isAdmin && !isBatchMode ? { ...attributes, ...listeners } : {};
+
   return (
-    <div ref={setNodeRef} style={style} className="relative">
-      {/* 拖拽手柄 - 仅管理员模式显示 */}
-      {isAdmin && !isBatchMode && (
-        <div
-          {...attributes}
-          {...listeners}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-40 w-6 h-12 flex items-center justify-center cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity text-white/30 hover:text-white/60"
-          style={{ opacity: isDragging ? 1 : undefined }}
-        >
-          <GripVertical size={16} />
-        </div>
-      )}
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative ${isAdmin && !isBatchMode ? 'cursor-grab active:cursor-grabbing' : ''}`}
+      {...dragProps}
+    >
       <SiteCard
         site={site}
         isAdmin={isAdmin}
@@ -1336,7 +1381,6 @@ function SortableSiteCard({ site, isAdmin, onEdit, onDelete, isBatchMode, isSele
         isSelected={isSelected}
         onToggleSelect={onToggleSelect}
         isDragging={isDragging}
-        className={isAdmin && !isBatchMode ? 'pl-6' : ''}
       />
     </div>
   );
@@ -1563,7 +1607,7 @@ function BgModal({ isOpen, onClose, currentBg, onSave }) {
   );
 }
 
-function GroupModal({ isOpen, onClose, groups, onAdd, onRemove, onRename, onMove }) {
+function GroupModal({ isOpen, onClose, groups, onAdd, onRemove, onRename, onMove, showToast }) {
   const [newGroup, setNewGroup] = useState('');
   const [editingGroup, setEditingGroup] = useState('');
   const [editingName, setEditingName] = useState('');
@@ -1577,7 +1621,7 @@ function GroupModal({ isOpen, onClose, groups, onAdd, onRemove, onRename, onMove
   const handleSaveGroupName = () => {
     const ok = onRename(editingGroup, editingName);
     if (!ok) return;
-    alert('分组名称已保存。');
+    showToast('分组名称已保存', 'success');
     setEditingGroup('');
     setEditingName('');
   };
