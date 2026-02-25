@@ -1424,15 +1424,26 @@ function LoginModal({ isOpen, onClose }) {
 function SiteCard({ site, isAdmin, onEdit, onDelete, className = "", isBatchMode = false, isSelected = false, onToggleSelect, isDragging = false }) {
   const [faviconIndex, setFaviconIndex] = useState(0);
   const [imgError, setImgError] = useState(false);
+  const [cachedUrl, setCachedUrl] = useState(null);
+  const imgRef = useRef(null);
   const textContainerRef = useRef(null);
   const textRef = useRef(null);
   const [shouldScroll, setShouldScroll] = useState(false);
 
-  // 重置状态当 site.url 变化
+  const domain = getDomainFromUrl(site.url || site.innerUrl || '');
+
+  // 初始化时检查缓存
   useEffect(() => {
     setImgError(false);
     setFaviconIndex(0);
-  }, [site.url]);
+    setCachedUrl(null);
+    if (domain) {
+      const cached = getCachedFavicon(domain);
+      if (cached) {
+        setCachedUrl(cached);
+      }
+    }
+  }, [domain]);
 
   useLayoutEffect(() => { if (textContainerRef.current && textRef.current) { setShouldScroll(textRef.current.scrollWidth > textContainerRef.current.clientWidth + 2); } }, [site.name, className]);
 
@@ -1440,15 +1451,33 @@ function SiteCard({ site, isAdmin, onEdit, onDelete, className = "", isBatchMode
   const hasInner = !!site.innerUrl;
   const isInnerOnly = !site.url && site.innerUrl;
 
-  // 根据域名自动获取图标，支持多源切换
-  const domain = getDomainFromUrl(site.url || site.innerUrl || '');
-  const faviconUrl = domain && faviconIndex < FAVICON_SERVICES.length
+  // 优先用缓存，否则按服务列表获取
+  const faviconUrl = cachedUrl || (domain && faviconIndex < FAVICON_SERVICES.length
     ? FAVICON_SERVICES[faviconIndex](domain)
-    : '';
+    : '');
+
+  // 图片加载成功时校验尺寸，过小则视为失败
+  const handleImgLoad = () => {
+    const img = imgRef.current;
+    // Google 等服务失败时会返回 200 + 极小图片（如 1x1 或 16x16 默认图标）
+    // 有效图标通常 >= 16x16，这里用 10 作为阈值防止误判
+    if (img && (img.naturalWidth < 10 || img.naturalHeight < 10)) {
+      handleImgError();
+      return;
+    }
+    if (!cachedUrl && domain && faviconUrl) {
+      setFaviconCache(domain, faviconUrl);
+      setCachedUrl(faviconUrl);
+    }
+  };
 
   // 图片加载失败时尝试下一个服务
   const handleImgError = () => {
-    if (faviconIndex < FAVICON_SERVICES.length - 1) {
+    if (cachedUrl) {
+      // 缓存的URL失效，清除并重新获取
+      setCachedUrl(null);
+      setFaviconIndex(0);
+    } else if (faviconIndex < FAVICON_SERVICES.length - 1) {
       setFaviconIndex(prev => prev + 1);
     } else {
       setImgError(true);
@@ -1469,7 +1498,7 @@ function SiteCard({ site, isAdmin, onEdit, onDelete, className = "", isBatchMode
         </button>
       )}
       <div className="relative z-10 w-14 h-14 flex-shrink-0 bg-white/5 rounded-xl p-1.5 flex items-center justify-center shadow-sm pointer-events-none">
-        {!imgError && faviconUrl ? <img src={faviconUrl} alt={site.name} className="w-full h-full object-contain drop-shadow-sm" onError={handleImgError} /> : <span className="text-xl font-bold text-white/40">{site.name.charAt(0).toUpperCase()}</span>}
+        {!imgError && faviconUrl ? <img ref={imgRef} src={faviconUrl} alt={site.name} className="w-full h-full object-contain drop-shadow-sm" onLoad={handleImgLoad} onError={handleImgError} /> : <span className="text-xl font-bold text-white/40">{site.name.charAt(0).toUpperCase()}</span>}
       </div>
       <div className="relative z-10 flex-1 min-w-0 flex flex-col justify-center ml-3 overflow-hidden pointer-events-none" ref={textContainerRef}>
         <div className="w-full relative h-6 flex items-center">
@@ -1523,6 +1552,47 @@ function SortableSiteCard({ site, isAdmin, onEdit, onDelete, isBatchMode, isSele
     </div>
   );
 }
+
+// 图标缓存相关
+const FAVICON_CACHE_KEY = 'favicon-cache';
+const FAVICON_CACHE_EXPIRE = 7 * 24 * 60 * 60 * 1000; // 7天过期
+
+// 获取图标缓存
+const getFaviconCache = () => {
+  try {
+    const cache = localStorage.getItem(FAVICON_CACHE_KEY);
+    return cache ? JSON.parse(cache) : {};
+  } catch (e) {
+    return {};
+  }
+};
+
+// 保存图标缓存
+const setFaviconCache = (domain, url) => {
+  try {
+    const cache = getFaviconCache();
+    cache[domain] = { url, time: Date.now() };
+    // 清理过期缓存
+    Object.keys(cache).forEach(key => {
+      if (Date.now() - cache[key].time > FAVICON_CACHE_EXPIRE) {
+        delete cache[key];
+      }
+    });
+    localStorage.setItem(FAVICON_CACHE_KEY, JSON.stringify(cache));
+  } catch (e) {
+    // 忽略存储错误
+  }
+};
+
+// 获取缓存的图标URL
+const getCachedFavicon = (domain) => {
+  const cache = getFaviconCache();
+  const item = cache[domain];
+  if (item && Date.now() - item.time < FAVICON_CACHE_EXPIRE) {
+    return item.url;
+  }
+  return null;
+};
 
 // 辅助函数：从 URL 提取域名
 const getDomainFromUrl = (url) => {
