@@ -1422,14 +1422,16 @@ function LoginModal({ isOpen, onClose }) {
 }
 
 function SiteCard({ site, isAdmin, onEdit, onDelete, className = "", isBatchMode = false, isSelected = false, onToggleSelect, isDragging = false }) {
+  const [faviconIndex, setFaviconIndex] = useState(0);
   const [imgError, setImgError] = useState(false);
   const textContainerRef = useRef(null);
   const textRef = useRef(null);
   const [shouldScroll, setShouldScroll] = useState(false);
 
-  // 重置错误状态当 site.url 变化
+  // 重置状态当 site.url 变化
   useEffect(() => {
     setImgError(false);
+    setFaviconIndex(0);
   }, [site.url]);
 
   useLayoutEffect(() => { if (textContainerRef.current && textRef.current) { setShouldScroll(textRef.current.scrollWidth > textContainerRef.current.clientWidth + 2); } }, [site.name, className]);
@@ -1438,8 +1440,20 @@ function SiteCard({ site, isAdmin, onEdit, onDelete, className = "", isBatchMode
   const hasInner = !!site.innerUrl;
   const isInnerOnly = !site.url && site.innerUrl;
 
-  // 根据域名自动获取图标
-  const faviconUrl = getFaviconUrl(site.url || site.innerUrl || '');
+  // 根据域名自动获取图标，支持多源切换
+  const domain = getDomainFromUrl(site.url || site.innerUrl || '');
+  const faviconUrl = domain && faviconIndex < FAVICON_SERVICES.length
+    ? FAVICON_SERVICES[faviconIndex](domain)
+    : '';
+
+  // 图片加载失败时尝试下一个服务
+  const handleImgError = () => {
+    if (faviconIndex < FAVICON_SERVICES.length - 1) {
+      setFaviconIndex(prev => prev + 1);
+    } else {
+      setImgError(true);
+    }
+  };
 
   return (
     <div className={`group relative h-20 md:h-20 hover:bg-white/10 rounded-2xl transition-all duration-300 flex items-center px-3 overflow-hidden w-full card-hover ${isDragging ? 'opacity-50 scale-105 shadow-2xl bg-white/20' : ''} ${className}`}>
@@ -1455,7 +1469,7 @@ function SiteCard({ site, isAdmin, onEdit, onDelete, className = "", isBatchMode
         </button>
       )}
       <div className="relative z-10 w-14 h-14 flex-shrink-0 bg-white/5 rounded-xl p-1.5 flex items-center justify-center shadow-sm pointer-events-none">
-        {!imgError && faviconUrl ? <img src={faviconUrl} alt={site.name} className="w-full h-full object-contain drop-shadow-sm" onError={() => setImgError(true)} /> : <span className="text-xl font-bold text-white/40">{site.name.charAt(0).toUpperCase()}</span>}
+        {!imgError && faviconUrl ? <img src={faviconUrl} alt={site.name} className="w-full h-full object-contain drop-shadow-sm" onError={handleImgError} /> : <span className="text-xl font-bold text-white/40">{site.name.charAt(0).toUpperCase()}</span>}
       </div>
       <div className="relative z-10 flex-1 min-w-0 flex flex-col justify-center ml-3 overflow-hidden pointer-events-none" ref={textContainerRef}>
         <div className="w-full relative h-6 flex items-center">
@@ -1520,12 +1534,21 @@ const getDomainFromUrl = (url) => {
   }
 };
 
-// 辅助函数：获取 favicon URL（使用稳定的 API 服务）
+// 多源 favicon 服务列表（按优先级排序）
+const FAVICON_SERVICES = [
+  (domain) => `https://cravatar.cn/favicon/api/index.php?url=${domain}`,
+  (domain) => `https://toolb.cn/favicon/${domain}`,
+  (domain) => `https://www.google.com/s2/favicons?sz=64&domain=${domain}`,
+  (domain) => `https://icon.horse/icon/${domain}`,
+  (domain) => `https://favicon.im/${domain}?larger=true`,
+  (domain) => `https://${domain}/favicon.ico`,
+];
+
+// 辅助函数：获取 favicon URL（默认第一个服务）
 const getFaviconUrl = (url) => {
   const domain = getDomainFromUrl(url);
   if (!domain) return '';
-  // 使用 cravatar.cn 服务，国内稳定
-  return `https://cravatar.cn/favicon/api/index.php?url=${domain}`;
+  return FAVICON_SERVICES[0](domain);
 };
 
 function SiteModal({ isOpen, onClose, onSubmit, initialData, groups }) {
