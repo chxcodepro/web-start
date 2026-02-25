@@ -1118,7 +1118,7 @@ export default function App() {
         </div>
 
         {/* 搜索聚焦时的遮罩层 */}
-        {isSearchFocused && (
+        {isSearchFocused && !isEngineDropdownOpen && (
           <div
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 animate-fade-in"
             onClick={() => setIsSearchFocused(false)}
@@ -1614,7 +1614,6 @@ const getDomainFromUrl = (url) => {
 
 // 多源 favicon 服务列表（按优先级排序）
 const FAVICON_SERVICES = [
-  (domain) => `https://toolb.cn/favicon/${domain}`,
   (domain) => `https://www.google.com/s2/favicons?sz=64&domain=${domain}`,
   (domain) => `https://icon.horse/icon/${domain}`,
   (domain) => `https://favicon.im/${domain}?larger=true`,
