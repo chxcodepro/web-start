@@ -269,6 +269,7 @@ export default function App() {
     }
   });
   const importInputRef = useRef(null);
+  const searchInputRef = useRef(null);
   const [activeDragId, setActiveDragId] = useState(null);
 
   // Toast 提示函数
@@ -1024,9 +1025,9 @@ export default function App() {
         </div>
       )}
 
-      <div className="relative z-10 container mx-auto px-4 md:px-6 py-8 max-w-[1600px] pb-40 transition-all duration-300">
+      <div className="relative z-10 container mx-auto pl-8 pr-4 md:pl-16 md:pr-6 py-8 max-w-[1600px] pb-40 transition-all duration-300">
 
-        <div className={`flex flex-col items-center justify-center mb-8 pt-10 md:pt-14 relative ${isSearchFocused ? 'z-40' : 'z-20'}`}>
+        <div className={`flex flex-col items-center justify-center mb-8 pt-10 md:pt-14 relative ${isSearchFocused || isEngineDropdownOpen ? 'z-40' : 'z-20'}`}>
           <div className="w-full max-w-2xl relative group animate-fade-in-up">
             {/* 搜索框容器 - 玻璃拟态 */}
             <div className="relative backdrop-blur-xl bg-white/10 rounded-full border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_32px_rgba(59,130,246,0.3)] hover:border-white/30 transition-all duration-300 hover:scale-[1.01]">
@@ -1057,6 +1058,8 @@ export default function App() {
                           onClick={() => {
                             changeSearchEngine(key);
                             setIsEngineDropdownOpen(false);
+                            // 聚焦到搜索框
+                            setTimeout(() => searchInputRef.current?.focus(), 0);
                           }}
                           className={`w-full px-4 py-2.5 text-left text-sm font-medium transition-all flex items-center gap-2 ${
                             searchEngine === key
@@ -1073,14 +1076,18 @@ export default function App() {
                 </div>
                 {/* 搜索输入框 */}
                 <input
+                  ref={searchInputRef}
+                  autoFocus
                   type="text"
                   value={searchQuery}
-                  onFocus={() => setIsSearchFocused(true)}
+                  onClick={() => setIsSearchFocused(true)}
                   onBlur={() => setTimeout(() => { setIsSearchFocused(false); setActiveSuggestionIndex(-1); }, 120)}
                   onKeyDown={handleSearchInputKeyDown}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
                     setActiveSuggestionIndex(-1);
+                    // 输入时显示遮罩层
+                    if (!isSearchFocused) setIsSearchFocused(true);
                   }}
                   placeholder="搜索..."
                   className="flex-1 h-14 px-4 bg-transparent text-white placeholder-white/40 text-lg focus:outline-none"
@@ -1117,11 +1124,14 @@ export default function App() {
           </div>
         </div>
 
-        {/* 搜索聚焦时的遮罩层 */}
-        {isSearchFocused && !isEngineDropdownOpen && (
+        {/* 搜索框点击或下拉框打开时的遮罩层 */}
+        {(isSearchFocused || isEngineDropdownOpen) && (
           <div
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 animate-fade-in"
-            onClick={() => setIsSearchFocused(false)}
+            onClick={() => {
+              setIsSearchFocused(false);
+              setIsEngineDropdownOpen(false);
+            }}
           />
         )}
 
@@ -1464,15 +1474,26 @@ function SiteCard({ site, isAdmin, onEdit, onDelete, className = "", isBatchMode
     ? FAVICON_SERVICES[faviconIndex](domain)
     : '');
 
-  // 图片加载成功时校验尺寸，过小则视为失败
+  // 图片加载成功时校验是否为有效图标
   const handleImgLoad = () => {
     const img = imgRef.current;
-    // Google 等服务失败时会返回 200 + 极小图片（如 1x1 或 16x16 默认图标）
-    // 有效图标通常 >= 16x16，这里用 10 作为阈值防止误判
-    if (img && (img.naturalWidth < 10 || img.naturalHeight < 10)) {
+    if (!img) return;
+
+    const { naturalWidth, naturalHeight } = img;
+
+    // 检测无效图标的多种情况：
+    // 1. 尺寸过小（< 10px）- 明显无效
+    // 2. Google API 请求 sz=64 但返回 16x16 - 这是 Google 的默认地球图标
+    // 3. 其他服务返回的占位图通常也是 16x16 或更小
+    const isGoogleApi = faviconUrl.includes('google.com/s2/favicons');
+    const minValidSize = isGoogleApi ? 24 : 10; // Google API 要求更高的阈值
+
+    if (naturalWidth < minValidSize || naturalHeight < minValidSize) {
       handleImgError();
       return;
     }
+
+    // 图标有效，缓存 URL
     if (!cachedUrl && domain && faviconUrl) {
       setFaviconCache(domain, faviconUrl);
       setCachedUrl(faviconUrl);
