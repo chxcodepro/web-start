@@ -4,7 +4,7 @@
 
 ## 在线预览
 
-- 预览地址（Vercel）：[https://ce-nav.vercel.app](https://ce-nav.vercel.app)
+- 预览地址（Vercel）：[https://webstart.chxpro.com](https://webstart.chxpro.com)
 
 ## 页面预览
 

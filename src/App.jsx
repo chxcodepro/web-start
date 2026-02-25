@@ -1,11 +1,11 @@
 import { useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
-import { 
-  Plus, 
-  Edit2, 
-  Trash2, 
-  X, 
-  Check, 
-  LayoutGrid, 
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  X,
+  Check,
+  LayoutGrid,
   Image as ImageIcon,
   Search,
   Zap,
@@ -16,8 +16,28 @@ import {
   User,
   Loader2,
   Upload,
-  Download
+  Download,
+  GripVertical
 } from 'lucide-react';
+
+// --- 拖拽排序库 ---
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 // --- 1. 引入 Firebase 核心与数据库 ---
 import { initializeApp } from "firebase/app";
@@ -248,6 +268,19 @@ export default function App() {
     }
   });
   const importInputRef = useRef(null);
+  const [activeDragId, setActiveDragId] = useState(null);
+
+  // 拖拽传感器配置
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // 拖动8px后才激活，避免误触
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const isAdmin = !!user;
 
@@ -714,6 +747,35 @@ export default function App() {
     setEditingSite(null);
   };
 
+  // 拖拽排序处理
+  const handleDragStart = (event) => {
+    setActiveDragId(event.active.id);
+  };
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    setActiveDragId(null);
+
+    if (!over || active.id === over.id) return;
+
+    updateCurrentPageData(p => {
+      const oldIndex = p.sites.findIndex(s => s.id === active.id);
+      const newIndex = p.sites.findIndex(s => s.id === over.id);
+
+      if (oldIndex === -1 || newIndex === -1) return p;
+
+      const newSites = arrayMove(p.sites, oldIndex, newIndex);
+      return { ...p, sites: newSites };
+    });
+  };
+
+  const handleDragCancel = () => {
+    setActiveDragId(null);
+  };
+
+  // 获取正在拖拽的站点
+  const activeDragSite = activeDragId ? activePage.sites.find(s => s.id === activeDragId) : null;
+
   const requestDeleteSite = (id) => {
     setConfirmConfig({
       isOpen: true, message: '确定要删除这个站点吗？',
@@ -861,36 +923,50 @@ export default function App() {
       <div className="relative z-10 container mx-auto px-4 py-8 max-w-6xl pb-32 transition-all duration-300">
         
         <div className="flex flex-col items-center justify-center mb-8 pt-10 md:pt-14">
-          <div className="w-full max-w-2xl relative group shadow-2xl">
-            <form onSubmit={handleSearch} className="relative w-full flex">
-              <select
-                value={searchEngine}
-                onChange={(e) => changeSearchEngine(e.target.value)}
-                className="h-14 pl-4 pr-2 rounded-l-full bg-white/10 border border-r-0 border-white/20 backdrop-blur-xl text-white focus:outline-none appearance-none cursor-pointer text-sm font-medium"
-              >
-                {Object.entries(SEARCH_ENGINES).map(([key, engine]) => (
-                  <option key={key} value={key} className="bg-gray-800">{engine.name}</option>
-                ))}
-              </select>
-              <input
-                type="text"
-                value={searchQuery}
-                onFocus={() => setIsSearchFocused(true)}
-                onBlur={() => setTimeout(() => { setIsSearchFocused(false); setActiveSuggestionIndex(-1); }, 120)}
-                onKeyDown={handleSearchInputKeyDown}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setActiveSuggestionIndex(-1);
-                }}
-                placeholder="搜索..."
-                className="flex-1 h-14 pl-4 pr-14 rounded-r-full bg-white/10 border border-l-0 border-white/20 backdrop-blur-xl focus:bg-white/20 focus:border-white/40 focus:outline-none transition-all text-white placeholder-white/40 text-lg shadow-inner"
-              />
-              <button type="submit" className="absolute inset-y-0 right-0 pr-4 flex items-center text-white/50 hover:text-white transition-colors cursor-pointer z-10">
-                <Search size={22} />
-              </button>
-            </form>
+          <div className="w-full max-w-2xl relative group">
+            {/* 搜索框容器 - 玻璃拟态 */}
+            <div className="relative backdrop-blur-xl bg-white/10 rounded-full border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_32px_rgba(59,130,246,0.2)] transition-all duration-300">
+              <form onSubmit={handleSearch} className="relative w-full flex items-center">
+                {/* 搜索引擎选择器 - 玻璃风格 */}
+                <div className="relative">
+                  <select
+                    value={searchEngine}
+                    onChange={(e) => changeSearchEngine(e.target.value)}
+                    className="h-14 pl-5 pr-8 bg-transparent border-r border-white/10 text-white/90 focus:outline-none appearance-none cursor-pointer text-sm font-medium hover:text-white transition-colors"
+                  >
+                    {Object.entries(SEARCH_ENGINES).map(([key, engine]) => (
+                      <option key={key} value={key} className="bg-gray-900 text-white">{engine.name}</option>
+                    ))}
+                  </select>
+                  {/* 下拉箭头 */}
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-white/40">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                      <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+                    </svg>
+                  </div>
+                </div>
+                {/* 搜索输入框 */}
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onBlur={() => setTimeout(() => { setIsSearchFocused(false); setActiveSuggestionIndex(-1); }, 120)}
+                  onKeyDown={handleSearchInputKeyDown}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setActiveSuggestionIndex(-1);
+                  }}
+                  placeholder="搜索..."
+                  className="flex-1 h-14 px-4 bg-transparent text-white placeholder-white/40 text-lg focus:outline-none"
+                />
+                <button type="submit" className="pr-5 pl-2 flex items-center text-white/50 hover:text-white transition-colors cursor-pointer">
+                  <Search size={22} />
+                </button>
+              </form>
+            </div>
+            {/* 搜索建议下拉 - 玻璃拟态 */}
             {isSearchFocused && searchQuery.trim().length >= 1 && searchSuggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 z-30 bg-gray-900/95 border border-white/15 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-md">
+              <div className="absolute top-full left-0 right-0 mt-3 z-30 backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden">
                 {searchSuggestions.map((suggestion, index) => (
                   <button
                     key={suggestion}
@@ -900,11 +976,14 @@ export default function App() {
                       e.preventDefault();
                       handleSuggestionSelect(suggestion);
                     }}
-                    className={`w-full text-left px-4 py-2.5 text-sm transition ${
-                      activeSuggestionIndex === index ? 'bg-white/15 text-white' : 'text-white/90 hover:bg-white/10'
+                    className={`w-full text-left px-5 py-3 text-sm transition-all duration-150 flex items-center gap-3 ${
+                      activeSuggestionIndex === index
+                        ? 'bg-white/20 text-white'
+                        : 'text-white/80 hover:bg-white/10 hover:text-white'
                     }`}
                   >
-                    {suggestion}
+                    <Search size={14} className="text-white/40" />
+                    <span>{suggestion}</span>
                   </button>
                 ))}
               </div>
@@ -925,6 +1004,13 @@ export default function App() {
           </div>
         )}
 
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
+        >
         <div className="space-y-4">
           {activePage.groups.map(group => {
             const groupItems = groupedSites[group] || [];
@@ -962,38 +1048,98 @@ export default function App() {
                      </div>
                   )}
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1.5">
-                  {groupItems.map(site => (
-                    <SiteCard key={site.id} site={site} isAdmin={isAdmin} 
-                      onEdit={() => { setEditingSite(site); setIsModalOpen(true); }} onDelete={() => requestDeleteSite(site.id)}
-                      isBatchMode={isBatchMode} isSelected={selectedSiteIds.includes(site.id)} onToggleSelect={toggleSiteSelection}
-                    />
-                  ))}
-                  {isAdmin && groupItems.length === 0 && (
-                     <button onClick={() => { setEditingSite({ group, pinned: false }); setIsModalOpen(true); }} className="h-20 rounded-xl border-2 border-dashed border-white/5 flex flex-col items-center justify-center text-white/20 hover:border-white/20 hover:text-white/50 transition-all hover:bg-white/5">
-                       <Plus size={20} />
-                       <span className="text-xs mt-1 font-medium">添加</span>
-                     </button>
-                  )}
-                </div>
+                <SortableContext items={groupItems.map(s => s.id)} strategy={rectSortingStrategy}>
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1.5">
+                    {groupItems.map(site => (
+                      isAdmin && !isBatchMode ? (
+                        <SortableSiteCard
+                          key={site.id}
+                          site={site}
+                          isAdmin={isAdmin}
+                          onEdit={() => { setEditingSite(site); setIsModalOpen(true); }}
+                          onDelete={() => requestDeleteSite(site.id)}
+                          isBatchMode={isBatchMode}
+                          isSelected={selectedSiteIds.includes(site.id)}
+                          onToggleSelect={toggleSiteSelection}
+                        />
+                      ) : (
+                        <SiteCard
+                          key={site.id}
+                          site={site}
+                          isAdmin={isAdmin}
+                          onEdit={() => { setEditingSite(site); setIsModalOpen(true); }}
+                          onDelete={() => requestDeleteSite(site.id)}
+                          isBatchMode={isBatchMode}
+                          isSelected={selectedSiteIds.includes(site.id)}
+                          onToggleSelect={toggleSiteSelection}
+                        />
+                      )
+                    ))}
+                    {isAdmin && groupItems.length === 0 && (
+                       <button onClick={() => { setEditingSite({ group, pinned: false }); setIsModalOpen(true); }} className="h-20 rounded-xl border-2 border-dashed border-white/5 flex flex-col items-center justify-center text-white/20 hover:border-white/20 hover:text-white/50 transition-all hover:bg-white/5">
+                         <Plus size={20} />
+                         <span className="text-xs mt-1 font-medium">添加</span>
+                       </button>
+                    )}
+                  </div>
+                </SortableContext>
               </div>
             );
           })}
-          
+
           {groupedSites['Others']?.length > 0 && (
              <div className="animate-fade-in opacity-80">
                  <div className="flex items-center justify-between mb-2 pb-0.5 border-b border-white/5"><h3 className="text-lg font-bold text-white/90">未分类</h3></div>
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1.5">
-                   {groupedSites['Others'].map(site => (
-                      <SiteCard key={site.id} site={site} isAdmin={isAdmin} 
-                        onEdit={() => { setEditingSite(site); setIsModalOpen(true); }} onDelete={() => requestDeleteSite(site.id)}
-                        isBatchMode={isBatchMode} isSelected={selectedSiteIds.includes(site.id)} onToggleSelect={toggleSiteSelection}
-                      />
-                   ))}
-                </div>
+                <SortableContext items={groupedSites['Others'].map(s => s.id)} strategy={rectSortingStrategy}>
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1.5">
+                     {groupedSites['Others'].map(site => (
+                        isAdmin && !isBatchMode ? (
+                          <SortableSiteCard
+                            key={site.id}
+                            site={site}
+                            isAdmin={isAdmin}
+                            onEdit={() => { setEditingSite(site); setIsModalOpen(true); }}
+                            onDelete={() => requestDeleteSite(site.id)}
+                            isBatchMode={isBatchMode}
+                            isSelected={selectedSiteIds.includes(site.id)}
+                            onToggleSelect={toggleSiteSelection}
+                          />
+                        ) : (
+                          <SiteCard
+                            key={site.id}
+                            site={site}
+                            isAdmin={isAdmin}
+                            onEdit={() => { setEditingSite(site); setIsModalOpen(true); }}
+                            onDelete={() => requestDeleteSite(site.id)}
+                            isBatchMode={isBatchMode}
+                            isSelected={selectedSiteIds.includes(site.id)}
+                            onToggleSelect={toggleSiteSelection}
+                          />
+                        )
+                     ))}
+                  </div>
+                </SortableContext>
              </div>
           )}
         </div>
+        {/* 拖拽时的浮动预览 */}
+        <DragOverlay>
+          {activeDragSite ? (
+            <div className="opacity-90">
+              <SiteCard
+                site={activeDragSite}
+                isAdmin={false}
+                onEdit={() => {}}
+                onDelete={() => {}}
+                isBatchMode={false}
+                isSelected={false}
+                onToggleSelect={() => {}}
+                isDragging={true}
+              />
+            </div>
+          ) : null}
+        </DragOverlay>
+        </DndContext>
 
         <div className="fixed bottom-8 right-8 flex flex-col gap-3 z-40">
           {!isAdmin ? (
@@ -1113,7 +1259,7 @@ function LoginModal({ isOpen, onClose }) {
   );
 }
 
-function SiteCard({ site, isAdmin, onEdit, onDelete, className = "", isBatchMode = false, isSelected = false, onToggleSelect }) {
+function SiteCard({ site, isAdmin, onEdit, onDelete, className = "", isBatchMode = false, isSelected = false, onToggleSelect, isDragging = false }) {
   const [imgError, setImgError] = useState(false);
   const textContainerRef = useRef(null);
   const textRef = useRef(null);
@@ -1124,7 +1270,7 @@ function SiteCard({ site, isAdmin, onEdit, onDelete, className = "", isBatchMode
   const hasInner = !!site.innerUrl;
   const isInnerOnly = !site.url && site.innerUrl;
   return (
-    <div className={`group relative h-20 md:h-20 hover:bg-white/10 rounded-2xl transition-all duration-200 flex items-center px-3 overflow-hidden w-full ${className}`}>
+    <div className={`group relative h-20 md:h-20 hover:bg-white/10 rounded-2xl transition-all duration-200 flex items-center px-3 overflow-hidden w-full ${isDragging ? 'opacity-50 scale-105 shadow-2xl bg-white/20' : ''} ${className}`}>
       {!isBatchMode && <a href={mainLink} target="_blank" rel="noreferrer" className="absolute inset-0 z-0" />}
       {isBatchMode && (
         <button
@@ -1147,6 +1293,51 @@ function SiteCard({ site, isAdmin, onEdit, onDelete, className = "", isBatchMode
       </div>
       {!isBatchMode && !isInnerOnly && hasInner && <a href={site.innerUrl} target="_blank" rel="noreferrer" className="relative z-20 mt-auto ml-auto md:absolute md:bottom-1.5 md:right-1.5 bg-emerald-500/20 hover:bg-emerald-500/90 text-emerald-300 hover:text-white text-[10px] px-1.5 py-0.5 rounded-full border border-emerald-500/30 transition-all font-bold shadow-sm opacity-0 group-hover:opacity-100" title={`内网地址: ${site.innerUrl}`} onClick={(e) => e.stopPropagation()}>内</a>}
       {isAdmin && !isBatchMode && <div className="absolute top-1.5 right-1.5 z-30 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 rounded-lg p-1 backdrop-blur-md border border-white/10 scale-90 hover:scale-100 pointer-events-auto"><button onClick={(e) => { e.stopPropagation(); onEdit(); }} className="p-1 text-white/70 hover:text-blue-400 rounded-md hover:bg-white/10 transition"><Edit2 size={12} /></button><button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-1 text-white/70 hover:text-red-400 rounded-md hover:bg-white/10 transition"><Trash2 size={12} /></button></div>}
+    </div>
+  );
+}
+
+// 可排序的 SiteCard 包装组件
+function SortableSiteCard({ site, isAdmin, onEdit, onDelete, isBatchMode, isSelected, onToggleSelect }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: site.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : undefined,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative">
+      {/* 拖拽手柄 - 仅管理员模式显示 */}
+      {isAdmin && !isBatchMode && (
+        <div
+          {...attributes}
+          {...listeners}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-40 w-6 h-12 flex items-center justify-center cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity text-white/30 hover:text-white/60"
+          style={{ opacity: isDragging ? 1 : undefined }}
+        >
+          <GripVertical size={16} />
+        </div>
+      )}
+      <SiteCard
+        site={site}
+        isAdmin={isAdmin}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        isBatchMode={isBatchMode}
+        isSelected={isSelected}
+        onToggleSelect={onToggleSelect}
+        isDragging={isDragging}
+        className={isAdmin && !isBatchMode ? 'pl-6' : ''}
+      />
     </div>
   );
 }
@@ -1227,53 +1418,105 @@ function SiteModal({ isOpen, onClose, onSubmit, initialData, groups }) {
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 bg-gray-900 border border-white/10 rounded-2xl w-full max-w-md shadow-2xl p-6">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
+      <div className="relative z-10 backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl w-full max-w-md shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-6">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-white tracking-tight">{initialData ? '编辑站点' : '添加站点'}</h2>
-          <button onClick={onClose} className="text-white/40 hover:text-white transition"><X size={20} /></button>
+          <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+            <Plus size={20} className="text-blue-400" />
+            {initialData?.id ? '编辑站点' : '添加站点'}
+          </h2>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition">
+            <X size={18} className="text-white/70 hover:text-white" />
+          </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-white/50 font-medium mb-1.5 ml-1">名称</label>
-              <input type="text" required className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white focus:border-blue-500 focus:bg-white/10 focus:outline-none transition-all" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="例如: Jellyfin" />
+              <label className="block text-xs text-white/50 font-medium mb-2 ml-1">名称</label>
+              <input
+                type="text"
+                required
+                className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/40 focus:border-blue-500/50 focus:bg-white/15 focus:outline-none transition-all"
+                value={formData.name}
+                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                placeholder="例如: Jellyfin"
+              />
             </div>
             <div>
-              <label className="block text-xs text-white/50 font-medium mb-1.5 ml-1">分组</label>
-              <select className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white focus:border-blue-500 focus:bg-white/10 focus:outline-none appearance-none" value={formData.group} onChange={e => setFormData({ ...formData, group: e.target.value })}>
-                {groups.map(g => <option key={g} value={g} className="bg-gray-800">{g}</option>)}
+              <label className="block text-xs text-white/50 font-medium mb-2 ml-1">分组</label>
+              <select
+                className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:border-blue-500/50 focus:outline-none appearance-none cursor-pointer"
+                value={formData.group}
+                onChange={e => setFormData({ ...formData, group: e.target.value })}
+              >
+                {groups.map(g => <option key={g} value={g} className="bg-gray-900 text-white">{g}</option>)}
               </select>
             </div>
           </div>
           <div>
-            <label className="block text-xs text-white/50 font-medium mb-1.5 ml-1">网址</label>
-            <input type="text" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white focus:border-blue-500 focus:bg-white/10 focus:outline-none font-mono text-sm" value={formData.url} onChange={e => setFormData({ ...formData, url: e.target.value })} placeholder="https://..." />
+            <label className="block text-xs text-white/50 font-medium mb-2 ml-1">网址</label>
+            <input
+              type="text"
+              className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/40 focus:border-blue-500/50 focus:bg-white/15 focus:outline-none font-mono text-sm transition-all"
+              value={formData.url}
+              onChange={e => setFormData({ ...formData, url: e.target.value })}
+              placeholder="https://..."
+            />
           </div>
           <div>
-            <label className="block text-xs text-white/50 font-medium mb-1.5 ml-1">图标地址</label>
+            <label className="block text-xs text-white/50 font-medium mb-2 ml-1">图标</label>
             <div className="flex gap-2">
-              <input type="text" className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white focus:border-blue-500 focus:bg-white/10 focus:outline-none text-sm font-mono truncate" value={formData.logo} onChange={handleLogoChange} placeholder="https://..." />
-              <button type="button" onClick={handleAutoMatch} className="px-3 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 rounded-xl flex items-center justify-center transition" title="根据名称自动获取图标"><Zap size={16} /> <span className="text-xs ml-1 font-bold">自动</span></button>
-              <div className="w-11 h-11 bg-white/5 rounded-xl p-1.5 flex items-center justify-center border border-white/10 shrink-0">{formData.logo ? <img src={formData.logo} className="w-full h-full object-contain" alt="预览" onError={(e) => e.target.style.display='none'} /> : <div className="text-xs text-white/20">?</div>}</div>
+              <input
+                type="text"
+                className="flex-1 bg-white/10 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/40 focus:border-blue-500/50 focus:outline-none text-sm font-mono truncate transition-all"
+                value={formData.logo}
+                onChange={handleLogoChange}
+                placeholder="图标 URL..."
+              />
+              <button
+                type="button"
+                onClick={handleAutoMatch}
+                className="px-3 bg-gradient-to-r from-indigo-500/30 to-purple-500/30 hover:from-indigo-500/50 hover:to-purple-500/50 text-indigo-200 border border-indigo-500/30 rounded-xl flex items-center justify-center transition-all"
+                title="根据名称自动获取图标"
+              >
+                <Zap size={16} />
+              </button>
+              <div className="w-11 h-11 bg-white/10 rounded-xl p-1.5 flex items-center justify-center border border-white/10 shrink-0 overflow-hidden">
+                {formData.logo ? (
+                  <img src={formData.logo} className="w-full h-full object-contain" alt="预览" onError={(e) => e.target.style.display='none'} />
+                ) : (
+                  <div className="text-xs text-white/30">?</div>
+                )}
+              </div>
             </div>
-            <div className="flex items-center justify-between mt-1.5">
-              <p className="text-[10px] text-white/30">自动匹配使用 homarr-labs 源。</p>
-              <label className="flex items-center gap-2 cursor-pointer text-xs text-white/70 hover:text-white transition whitespace-nowrap ml-2 select-none">
-                <input type="checkbox" checked={formData.useFavicon} onChange={e => setFormData(prev => ({ ...prev, useFavicon: e.target.checked }))} className="rounded border-white/20 bg-white/5 focus:ring-0 text-blue-500" />
-                <span>使用站点图标</span>
+            <div className="flex items-center justify-between mt-2">
+              <p className="text-[10px] text-white/30">自动匹配使用 homarr-labs 源</p>
+              <label className="flex items-center gap-2 cursor-pointer text-xs text-white/60 hover:text-white transition whitespace-nowrap ml-2 select-none group">
+                <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${formData.useFavicon ? 'bg-blue-500 border-blue-500' : 'border-white/30 group-hover:border-white/50'}`}>
+                  {formData.useFavicon && <Check size={10} className="text-white" />}
+                </div>
+                <span onClick={() => setFormData(prev => ({ ...prev, useFavicon: !prev.useFavicon }))}>使用站点图标</span>
               </label>
             </div>
           </div>
-          <div className="flex items-center gap-3 pt-2 pl-1 cursor-pointer" onClick={() => setFormData({ ...formData, pinned: !formData.pinned })}>
-            <div className={`flex items-center justify-center w-5 h-5 rounded border transition-colors ${formData.pinned ? 'bg-yellow-500 border-yellow-500' : 'border-white/20 bg-white/5'}`}>
-              {formData.pinned && <Check size={14} className="text-black" />}
+          {/* 置顶选项 */}
+          <div
+            className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${formData.pinned ? 'bg-yellow-500/20 border border-yellow-500/30' : 'bg-white/5 border border-white/10 hover:bg-white/10'}`}
+            onClick={() => setFormData({ ...formData, pinned: !formData.pinned })}
+          >
+            <div className={`flex items-center justify-center w-5 h-5 rounded-md border-2 transition-all ${formData.pinned ? 'bg-yellow-500 border-yellow-500' : 'border-white/30'}`}>
+              {formData.pinned && <Check size={12} className="text-black" />}
             </div>
-            <span className="text-sm text-white/80 select-none">置顶 (显示在顶部区域)</span>
+            <span className="text-sm text-white/80 select-none">置顶显示</span>
           </div>
-          <div className="pt-6 flex gap-3">
-            <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/80 transition font-medium">取消</button>
-            <button type="submit" className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition shadow-lg shadow-blue-900/40">保存</button>
+          {/* 操作按钮 */}
+          <div className="pt-4 flex gap-3">
+            <button type="button" onClick={onClose} className="flex-1 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-white/80 transition font-medium">
+              取消
+            </button>
+            <button type="submit" className="flex-1 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white font-medium transition-all shadow-lg shadow-blue-900/40">
+              保存
+            </button>
           </div>
         </form>
       </div>
@@ -1286,14 +1529,34 @@ function BgModal({ isOpen, onClose, currentBg, onSave }) {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 bg-gray-900 border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl">
-        <h2 className="text-xl font-bold text-white mb-4">自定义背景</h2>
-        <input type="text" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="图片 URL 地址" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white mb-4 focus:border-blue-500 focus:outline-none" />
-        <div className="h-32 w-full rounded-xl bg-cover bg-center mb-6 border border-white/10 shadow-inner" style={{ backgroundImage: `url(${url})` }}></div>
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
+      <div className="relative z-10 backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl w-full max-w-md p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+        <div className="flex justify-between items-center mb-5">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <ImageIcon size={20} className="text-cyan-400" />
+            自定义背景
+          </h2>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition">
+            <X size={18} className="text-white/70 hover:text-white" />
+          </button>
+        </div>
+        <input
+          type="text"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="输入图片 URL 地址..."
+          className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40 mb-4 focus:border-cyan-500/50 focus:outline-none transition-all"
+        />
+        <div className="h-36 w-full rounded-2xl bg-cover bg-center mb-6 border border-white/20 shadow-inner overflow-hidden" style={{ backgroundImage: `url(${url})` }}>
+          {!url && <div className="w-full h-full flex items-center justify-center text-white/30 text-sm">预览区域</div>}
+        </div>
         <div className="flex gap-3">
-          <button onClick={() => { onSave(url); onClose(); }} className="flex-1 py-2 bg-blue-600 hover:bg-blue-500 rounded-xl text-white font-medium transition">应用</button>
-          <button onClick={() => { onSave(DEFAULT_BG); onClose(); }} className="flex-1 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-white font-medium transition">恢复默认</button>
+          <button onClick={() => { onSave(url); onClose(); }} className="flex-1 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 rounded-xl text-white font-medium transition-all shadow-lg shadow-cyan-900/30">
+            应用
+          </button>
+          <button onClick={() => { onSave(DEFAULT_BG); onClose(); }} className="flex-1 py-3 bg-white/10 hover:bg-white/15 rounded-xl text-white/80 font-medium transition">
+            恢复默认
+          </button>
         </div>
       </div>
     </div>
@@ -1345,14 +1608,26 @@ function GroupModal({ isOpen, onClose, groups, onAdd, onRemove, onRename, onMove
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 bg-gray-900 border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
+      <div className="relative z-10 backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl w-full max-w-md p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-white">分组管理</h2>
-          <button onClick={onClose}><X size={20} className="text-white/50 hover:text-white" /></button>
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <LayoutGrid size={20} className="text-indigo-400" />
+            分组管理
+          </h2>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition">
+            <X size={18} className="text-white/70 hover:text-white" />
+          </button>
         </div>
-        <div className="flex gap-2 mb-4">
-          <input type="text" value={newGroup} onChange={e => setNewGroup(e.target.value)} placeholder="新分组名称" className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 text-white focus:border-green-500 focus:outline-none" />
+        {/* 添加新分组 */}
+        <div className="flex gap-2 mb-5">
+          <input
+            type="text"
+            value={newGroup}
+            onChange={e => setNewGroup(e.target.value)}
+            placeholder="新分组名称..."
+            className="flex-1 bg-white/10 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/40 focus:border-indigo-500/50 focus:bg-white/15 focus:outline-none transition-all"
+          />
           <button
             onClick={() => {
               const ok = onAdd(newGroup);
@@ -1360,87 +1635,93 @@ function GroupModal({ isOpen, onClose, groups, onAdd, onRemove, onRename, onMove
               setNewGroup('');
             }}
             disabled={!newGroup}
-            className="px-4 py-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 disabled:hover:bg-green-600 text-white rounded-xl font-medium transition"
+            className="px-5 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all shadow-lg shadow-green-900/30"
           >
             添加
           </button>
         </div>
+        {/* 全选/删除选中 */}
         <div className="flex items-center justify-between mb-3 px-1">
           <button
             onClick={toggleSelectAll}
-            className="text-xs text-white/60 hover:text-white transition flex items-center gap-1"
+            className="text-xs text-white/60 hover:text-white transition flex items-center gap-2 group"
           >
-            <div className={`w-4 h-4 rounded border flex items-center justify-center transition ${selectedGroups.length === groups.length && groups.length > 0 ? 'bg-blue-500 border-blue-500' : 'border-white/30'}`}>
-              {selectedGroups.length === groups.length && groups.length > 0 && <Check size={12} className="text-white" />}
+            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${selectedGroups.length === groups.length && groups.length > 0 ? 'bg-indigo-500 border-indigo-500 shadow-lg shadow-indigo-500/30' : 'border-white/30 group-hover:border-white/50'}`}>
+              {selectedGroups.length === groups.length && groups.length > 0 && <Check size={10} className="text-white" />}
             </div>
             {selectedGroups.length === groups.length && groups.length > 0 ? '取消全选' : '全选'}
           </button>
           {selectedGroups.length > 0 && (
             <button
               onClick={handleDeleteSelected}
-              className="text-xs text-red-400 hover:text-red-300 transition flex items-center gap-1"
+              className="text-xs text-red-400 hover:text-red-300 transition flex items-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded-lg"
             >
               <Trash2 size={12} />
               删除选中 ({selectedGroups.length})
             </button>
           )}
         </div>
-        <div className="max-h-60 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+        {/* 分组列表 */}
+        <div className="max-h-64 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
           {groups.map((g, index) => (
-            <div key={g} className="bg-white/5 p-3 rounded-xl border border-white/5 hover:border-white/10 transition">
+            <div key={g} className="backdrop-blur-sm bg-white/5 p-3 rounded-xl border border-white/10 hover:border-white/20 hover:bg-white/10 transition-all group">
               {editingGroup === g ? (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <input
                     type="text"
                     value={editingName}
                     onChange={e => setEditingName(e.target.value)}
                     placeholder="输入新分组名称"
-                    className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:border-indigo-500 focus:outline-none"
+                    autoFocus
                   />
                   <div className="flex gap-2">
-                    <button onClick={handleSaveGroupName} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs transition">保存名称</button>
-                    <button onClick={() => { setEditingGroup(''); setEditingName(''); }} className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs transition">取消</button>
+                    <button onClick={handleSaveGroupName} className="px-4 py-1.5 bg-indigo-500 hover:bg-indigo-400 text-white rounded-lg text-xs font-medium transition shadow-lg shadow-indigo-900/30">保存</button>
+                    <button onClick={() => { setEditingGroup(''); setEditingName(''); }} className="px-4 py-1.5 bg-white/10 hover:bg-white/20 text-white/80 rounded-lg text-xs transition">取消</button>
                   </div>
                 </div>
               ) : (
                 <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <button
                       onClick={() => toggleGroupSelection(g)}
-                      className="w-4 h-4 rounded border flex items-center justify-center transition"
-                      style={{
-                        backgroundColor: selectedGroups.includes(g) ? '#3b82f6' : 'transparent',
-                        borderColor: selectedGroups.includes(g) ? '#3b82f6' : 'rgba(255,255,255,0.3)'
-                      }}
+                      className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
+                        selectedGroups.includes(g)
+                          ? 'bg-indigo-500 border-indigo-500 shadow-lg shadow-indigo-500/30'
+                          : 'border-white/30 hover:border-white/50'
+                      }`}
                     >
                       {selectedGroups.includes(g) && <Check size={12} className="text-white" />}
                     </button>
                     <span className="text-white font-medium">{g}</span>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => onMove(g, 'up')}
                       disabled={index === 0}
-                      className="px-2 py-1 text-xs text-white/70 hover:text-white disabled:opacity-30 transition rounded hover:bg-white/5"
-                      title="上移"
+                      className="px-2 py-1 text-[11px] text-white/70 hover:text-white disabled:opacity-30 transition rounded-md hover:bg-white/10"
                     >
-                      上移
+                      ↑
                     </button>
                     <button
                       onClick={() => onMove(g, 'down')}
                       disabled={index === groups.length - 1}
-                      className="px-2 py-1 text-xs text-white/70 hover:text-white disabled:opacity-30 transition rounded hover:bg-white/5"
-                      title="下移"
+                      className="px-2 py-1 text-[11px] text-white/70 hover:text-white disabled:opacity-30 transition rounded-md hover:bg-white/10"
                     >
-                      下移
+                      ↓
                     </button>
-                    <button onClick={() => startEditGroup(g)} className="text-white/40 hover:text-blue-400 p-1.5 transition rounded-lg hover:bg-white/5" title="重命名"><Edit2 size={16} /></button>
-                    <button onClick={() => onRemove(g)} className="text-white/30 hover:text-red-400 p-1.5 transition rounded-lg hover:bg-white/5" title="删除"><Trash2 size={16} /></button>
+                    <button onClick={() => startEditGroup(g)} className="text-white/50 hover:text-blue-400 p-1.5 transition rounded-lg hover:bg-white/10" title="重命名"><Edit2 size={14} /></button>
+                    <button onClick={() => onRemove(g)} className="text-white/50 hover:text-red-400 p-1.5 transition rounded-lg hover:bg-white/10" title="删除"><Trash2 size={14} /></button>
                   </div>
                 </div>
               )}
             </div>
           ))}
+          {groups.length === 0 && (
+            <div className="text-center py-8 text-white/40 text-sm">
+              暂无分组，请添加一个
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1472,60 +1753,82 @@ function ImportModal({ isOpen, onClose, importData, existingGroups, onConfirm })
 
   return (
     <div className="fixed inset-0 z-[85] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 bg-gray-900 border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
+      <div className="relative z-10 backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl w-full max-w-md p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
         <div className="flex justify-between items-center mb-5">
-          <h2 className="text-xl font-bold text-white">导入书签</h2>
-          <button onClick={onClose} className="text-white/40 hover:text-white transition"><X size={20} /></button>
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <Upload size={20} className="text-violet-400" />
+            导入书签
+          </h2>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition">
+            <X size={18} className="text-white/70 hover:text-white" />
+          </button>
         </div>
 
-        <div className="mb-4 p-3 bg-white/5 rounded-xl border border-white/10">
-          <p className="text-white/70 text-sm">
-            解析到 <span className="text-blue-400 font-bold">{importData.sites.length}</span> 个书签
-          </p>
+        {/* 解析结果统计 */}
+        <div className="mb-5 p-4 backdrop-blur-sm bg-gradient-to-r from-violet-500/20 to-indigo-500/20 rounded-2xl border border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-violet-500/30 flex items-center justify-center">
+              <span className="text-2xl font-bold text-violet-300">{importData.sites.length}</span>
+            </div>
+            <div>
+              <p className="text-white font-medium">个书签待导入</p>
+              <p className="text-white/50 text-xs">选择目标分组后导入</p>
+            </div>
+          </div>
         </div>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-xs text-white/50 font-medium mb-2 ml-1">选择目标分组</label>
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  checked={!isNewGroup}
-                  onChange={() => setIsNewGroup(false)}
-                  className="text-blue-500"
-                />
-                <span className="text-white/80 text-sm">选择现有分组</span>
+            <label className="block text-xs text-white/50 font-medium mb-3 ml-1">选择目标分组</label>
+            <div className="space-y-3">
+              {/* 选择现有分组 */}
+              <label
+                className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
+                  !isNewGroup ? 'bg-white/15 border border-indigo-500/50' : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                }`}
+                onClick={() => setIsNewGroup(false)}
+              >
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                  !isNewGroup ? 'border-indigo-500 bg-indigo-500' : 'border-white/30'
+                }`}>
+                  {!isNewGroup && <div className="w-2 h-2 rounded-full bg-white" />}
+                </div>
+                <span className="text-white/90 text-sm font-medium">选择现有分组</span>
               </label>
               {!isNewGroup && (
                 <select
                   value={selectedGroup}
                   onChange={(e) => setSelectedGroup(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white focus:border-blue-500 focus:outline-none appearance-none"
+                  className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-indigo-500/50 focus:outline-none appearance-none cursor-pointer"
                 >
                   {existingGroups.map(g => (
-                    <option key={g} value={g} className="bg-gray-800">{g}</option>
+                    <option key={g} value={g} className="bg-gray-900 text-white">{g}</option>
                   ))}
                 </select>
               )}
 
-              <label className="flex items-center gap-2 cursor-pointer mt-3">
-                <input
-                  type="radio"
-                  checked={isNewGroup}
-                  onChange={() => setIsNewGroup(true)}
-                  className="text-blue-500"
-                />
-                <span className="text-white/80 text-sm">新建分组</span>
+              {/* 新建分组 */}
+              <label
+                className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
+                  isNewGroup ? 'bg-white/15 border border-indigo-500/50' : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                }`}
+                onClick={() => setIsNewGroup(true)}
+              >
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                  isNewGroup ? 'border-indigo-500 bg-indigo-500' : 'border-white/30'
+                }`}>
+                  {isNewGroup && <div className="w-2 h-2 rounded-full bg-white" />}
+                </div>
+                <span className="text-white/90 text-sm font-medium">新建分组</span>
               </label>
               {isNewGroup && (
                 <input
                   type="text"
                   value={newGroupName}
                   onChange={(e) => setNewGroupName(e.target.value)}
-                  placeholder="输入新分组名称"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white focus:border-blue-500 focus:outline-none"
+                  placeholder="输入新分组名称..."
+                  className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:border-indigo-500/50 focus:outline-none transition-all"
                   autoFocus
                 />
               )}
@@ -1534,11 +1837,13 @@ function ImportModal({ isOpen, onClose, importData, existingGroups, onConfirm })
         </div>
 
         <div className="pt-6 flex gap-3">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/80 transition font-medium">取消</button>
+          <button onClick={onClose} className="flex-1 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-white/80 transition font-medium">
+            取消
+          </button>
           <button
             onClick={handleConfirm}
             disabled={isNewGroup && !newGroupName.trim()}
-            className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium transition shadow-lg shadow-blue-900/40"
+            className="flex-1 py-3 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-400 hover:to-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium transition-all shadow-lg shadow-violet-900/40"
           >
             确认导入
           </button>
