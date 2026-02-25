@@ -28,6 +28,7 @@ import {
 // --- 1. 引入 Firebase 核心与数据库 ---
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, onSnapshot, setDoc, enableIndexedDbPersistence } from "firebase/firestore";
+import { getFunctions, httpsCallable } from "firebase/functions";
 // --- 2. 引入 Firebase 身份认证 ---
 import { 
   getAuth, 
@@ -53,6 +54,7 @@ const firebaseConfig = {
 // 初始化 Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const cloudFunctions = getFunctions(app);
 const auth = getAuth(app); 
 
 // 启用离线持久化
@@ -110,12 +112,6 @@ const normalizeWebDavConfig = (config) => ({
   password: config?.password || '',
   filePath: ((config?.filePath || DEFAULT_WEB_DAV_CONFIG.filePath).trim() || DEFAULT_WEB_DAV_CONFIG.filePath),
 });
-
-const buildWebDavTargetUrl = (baseUrl, filePath) => {
-  const cleanBase = (baseUrl || '').replace(/\/+$/, '');
-  const cleanPath = (filePath || '').startsWith('/') ? filePath : `/${filePath}`;
-  return `${cleanBase}${cleanPath}`;
-};
 
 export default function App() {
   const [pages, setPages] = useState([]); 
@@ -271,7 +267,6 @@ export default function App() {
     const config = persistWebDavConfig(configFromModal, { silent: true });
     if (!validateWebDavConfig(config)) return;
 
-    const targetUrl = buildWebDavTargetUrl(config.url, config.filePath);
     const backupData = {
       version: 1,
       exportedAt: new Date().toISOString(),
@@ -280,23 +275,13 @@ export default function App() {
     };
 
     try {
-      const response = await fetch(targetUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Basic ${btoa(`${config.username}:${config.password}`)}`,
-        },
-        body: JSON.stringify(backupData, null, 2),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
+      const backupCallable = httpsCallable(cloudFunctions, 'webdavBackup');
+      await backupCallable({ config, backupData });
       alert('WebDAV 备份成功。');
     } catch (error) {
       console.error('WebDAV 备份失败:', error);
-      alert(`WebDAV 备份失败：${error.message || '请检查地址、账号密码和 CORS 配置。'}`);
+      const detail = error?.message || '请检查 Firebase 函数部署状态和 WebDAV 配置。';
+      alert(`WebDAV 备份失败：${detail}`);
     }
   };
 
@@ -305,22 +290,10 @@ export default function App() {
     const config = persistWebDavConfig(configFromModal, { silent: true });
     if (!validateWebDavConfig(config)) return;
 
-    const targetUrl = buildWebDavTargetUrl(config.url, config.filePath);
-
     try {
-      const response = await fetch(targetUrl, {
-        method: 'GET',
-        headers: {
-          Authorization: `Basic ${btoa(`${config.username}:${config.password}`)}`,
-          'Cache-Control': 'no-cache',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const backupData = await response.json();
+      const restoreCallable = httpsCallable(cloudFunctions, 'webdavRestore');
+      const result = await restoreCallable({ config });
+      const backupData = result?.data?.backupData;
       const restoredPages = Array.isArray(backupData?.pages) ? backupData.pages : null;
       const restoredBgImage = typeof backupData?.bgImage === 'string' && backupData.bgImage.trim()
         ? backupData.bgImage
@@ -345,7 +318,8 @@ export default function App() {
       alert('WebDAV 恢复成功。');
     } catch (error) {
       console.error('WebDAV 恢复失败:', error);
-      alert(`WebDAV 恢复失败：${error.message || '请检查备份文件和服务配置。'}`);
+      const detail = error?.message || '请检查 Firebase 函数部署状态和 WebDAV 配置。';
+      alert(`WebDAV 恢复失败：${detail}`);
     }
   };
 
