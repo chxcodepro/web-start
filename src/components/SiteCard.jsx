@@ -8,6 +8,7 @@ import {
   getDomainFromUrl,
   getCachedFavicon,
   setFaviconCache,
+  clearFaviconCache,
 } from '../utils/favicon';
 
 export function SiteCard({ site, isAdmin, onEdit, onDelete, className = "", isBatchMode = false, isSelected = false, onToggleSelect, isDragging = false }) {
@@ -78,7 +79,8 @@ export function SiteCard({ site, isAdmin, onEdit, onDelete, className = "", isBa
   // 图片加载失败时尝试下一个服务
   const handleImgError = () => {
     if (cachedUrl) {
-      // 缓存的URL失效，清除并重新获取
+      // 缓存的URL失效，清除 localStorage 缓存并重新获取
+      clearFaviconCache(domain);
       setCachedUrl(null);
       setFaviconIndex(0);
     } else if (faviconIndex < FAVICON_SERVICES.length - 1) {

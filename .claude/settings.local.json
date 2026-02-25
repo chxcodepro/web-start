@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "mcp__contextweaver__codebase-retrieval",
-      "mcp__exa-proxy__web_search_exa"
+      "mcp__exa-proxy__web_search_exa",
+      "mcp__chrome-devtools__list_pages"
     ]
   }
 }

@@ -48,6 +48,19 @@ export const getCachedFavicon = (domain) => {
   return null;
 };
 
+// 清除指定域名的图标缓存
+export const clearFaviconCache = (domain) => {
+  try {
+    const cache = getFaviconCache();
+    if (cache[domain]) {
+      delete cache[domain];
+      localStorage.setItem(FAVICON_CACHE_KEY, JSON.stringify(cache));
+    }
+  } catch (e) {
+    // 忽略存储错误
+  }
+};
+
 // 从 URL 提取域名
 export const getDomainFromUrl = (url) => {
   try {
