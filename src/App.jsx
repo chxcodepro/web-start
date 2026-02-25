@@ -89,6 +89,7 @@ const DEFAULT_PAGES = [
 
 const DEFAULT_BG = "https://images.unsplash.com/photo-1531685250784-7569952593d2?q=80&w=2874&auto=format&fit=crop";
 const WEB_DAV_STORAGE_KEY = 'my-nav-webdav-config';
+const SEARCH_HISTORY_STORAGE_KEY = 'my-nav-search-history';
 const DEFAULT_WEB_DAV_CONFIG = {
   url: '',
   username: '',
@@ -183,6 +184,18 @@ export default function App() {
   });
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+  const [searchHistory, setSearchHistory] = useState(() => {
+    try {
+      const saved = localStorage.getItem(SEARCH_HISTORY_STORAGE_KEY);
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed.filter(item => typeof item === 'string') : [];
+    } catch (e) {
+      return [];
+    }
+  });
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSite, setEditingSite] = useState(null); 
@@ -256,9 +269,51 @@ export default function App() {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    if (!searchQuery.trim()) return;
-    const url = `https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`;
+    const keyword = searchQuery.trim();
+    if (!keyword) return;
+    const nextHistory = [keyword, ...searchHistory.filter(item => item !== keyword)].slice(0, 30);
+    setSearchHistory(nextHistory);
+    localStorage.setItem(SEARCH_HISTORY_STORAGE_KEY, JSON.stringify(nextHistory));
+    setSearchSuggestions([]);
+    setActiveSuggestionIndex(-1);
+    const url = `https://www.google.com/search?q=${encodeURIComponent(keyword)}`;
     window.open(url, '_blank');
+  };
+
+  const handleSuggestionSelect = (keyword) => {
+    setSearchQuery(keyword);
+    setIsSearchFocused(false);
+    setSearchSuggestions([]);
+    setActiveSuggestionIndex(-1);
+    const nextHistory = [keyword, ...searchHistory.filter(item => item !== keyword)].slice(0, 30);
+    setSearchHistory(nextHistory);
+    localStorage.setItem(SEARCH_HISTORY_STORAGE_KEY, JSON.stringify(nextHistory));
+    const url = `https://www.google.com/search?q=${encodeURIComponent(keyword)}`;
+    window.open(url, '_blank');
+  };
+
+  const handleSearchInputKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      setIsSearchFocused(false);
+      setActiveSuggestionIndex(-1);
+      e.currentTarget.blur();
+      return;
+    }
+    if (!isSearchFocused || searchSuggestions.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveSuggestionIndex((prev) => (prev < searchSuggestions.length - 1 ? prev + 1 : 0));
+      return;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveSuggestionIndex((prev) => (prev > 0 ? prev - 1 : searchSuggestions.length - 1));
+      return;
+    }
+    if (e.key === 'Enter' && activeSuggestionIndex >= 0) {
+      e.preventDefault();
+      handleSuggestionSelect(searchSuggestions[activeSuggestionIndex]);
+    }
   };
 
   const handleLogout = async () => {
@@ -526,6 +581,57 @@ export default function App() {
     savePagesToCloud([normalizedPage]).catch(() => {});
   };
 
+  useEffect(() => {
+    const keyword = searchQuery.trim();
+    if (keyword.length < 1) {
+      setSearchSuggestions([]);
+      return;
+    }
+
+    const localMatches = searchHistory
+      .filter(item => item.toLowerCase().includes(keyword.toLowerCase()))
+      .slice(0, 6);
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `https://suggestqueries.google.com/complete/search?client=firefox&hl=zh-CN&q=${encodeURIComponent(keyword)}`
+        );
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        const onlineMatches = Array.isArray(data?.[1]) ? data[1] : [];
+        const merged = [...localMatches, ...onlineMatches]
+          .map(item => String(item || '').trim())
+          .filter(Boolean);
+        const seen = new Set();
+        const uniqueSuggestions = [];
+        merged.forEach((item) => {
+          const key = item.toLowerCase();
+          if (seen.has(key)) return;
+          seen.add(key);
+          uniqueSuggestions.push(item);
+        });
+        if (!cancelled) setSearchSuggestions(uniqueSuggestions.slice(0, 8));
+      } catch (error) {
+        if (!cancelled) setSearchSuggestions(localMatches.slice(0, 8));
+      }
+    }, 180);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [searchQuery, searchHistory]);
+
+  useEffect(() => {
+    if (!isSearchFocused || searchSuggestions.length === 0) {
+      setActiveSuggestionIndex(-1);
+      return;
+    }
+    setActiveSuggestionIndex((prev) => (prev >= searchSuggestions.length ? 0 : prev));
+  }, [isSearchFocused, searchSuggestions]);
+
   const saveSite = (siteData) => {
     updateCurrentPageData(p => {
       let newSites;
@@ -648,11 +754,43 @@ export default function App() {
         <div className="flex flex-col items-center justify-center mb-8 pt-10 md:pt-14">
           <div className="w-full max-w-2xl relative group shadow-2xl">
             <form onSubmit={handleSearch} className="relative w-full">
-              <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="输入关键词后回车搜索..." className="w-full h-14 pl-6 pr-14 rounded-full bg-white/10 border border-white/20 backdrop-blur-xl focus:bg-white/20 focus:border-white/40 focus:outline-none transition-all text-white placeholder-white/40 text-lg shadow-inner" />
+              <input
+                type="text"
+                value={searchQuery}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setTimeout(() => { setIsSearchFocused(false); setActiveSuggestionIndex(-1); }, 120)}
+                onKeyDown={handleSearchInputKeyDown}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setActiveSuggestionIndex(-1);
+                }}
+                placeholder="输入1个字就会补全..."
+                className="w-full h-14 pl-6 pr-14 rounded-full bg-white/10 border border-white/20 backdrop-blur-xl focus:bg-white/20 focus:border-white/40 focus:outline-none transition-all text-white placeholder-white/40 text-lg shadow-inner"
+              />
               <button type="submit" className="absolute inset-y-0 right-0 pr-4 flex items-center text-white/50 hover:text-white transition-colors cursor-pointer z-10">
                 <Search size={22} />
               </button>
             </form>
+            {isSearchFocused && searchQuery.trim().length >= 1 && searchSuggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-2 z-30 bg-gray-900/95 border border-white/15 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-md">
+                {searchSuggestions.map((suggestion, index) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onMouseEnter={() => setActiveSuggestionIndex(index)}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      handleSuggestionSelect(suggestion);
+                    }}
+                    className={`w-full text-left px-4 py-2.5 text-sm transition ${
+                      activeSuggestionIndex === index ? 'bg-white/15 text-white' : 'text-white/90 hover:bg-white/10'
+                    }`}
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <radialGradient id="sunCore" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFF7B0" />
+      <stop offset="100%" stop-color="#FFB703" />
+    </radialGradient>
+  </defs>
+  <g fill="none" stroke="#F59E0B" stroke-linecap="round" stroke-width="4">
+    <path d="M32 4v10M32 50v10M60 32H50M14 32H4M52 12l-7 7M19 45l-7 7M52 52l-7-7M19 19l-7-7"/>
+  </g>
+  <circle cx="32" cy="32" r="14" fill="url(#sunCore)" stroke="#F59E0B" stroke-width="3"/>
+</svg>
