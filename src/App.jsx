@@ -258,6 +258,7 @@ export default function App() {
   const [editingGroupInlineName, setEditingGroupInlineName] = useState('');
   const [importModalData, setImportModalData] = useState(null); // 书签导入弹窗数据
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' }); // Toast 提示状态
+  const [collapsedGroups, setCollapsedGroups] = useState({}); // 分组收起状态
   const [webdavConfig, setWebdavConfig] = useState(() => {
     try {
       const saved = localStorage.getItem(WEB_DAV_STORAGE_KEY);
@@ -909,12 +910,108 @@ export default function App() {
   return (
     <div className="min-h-screen w-full text-white relative font-sans selection:bg-purple-500 selection:text-white">
       <style>{`
+        /* 基础动画 */
         @keyframes marquee-scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         @keyframes fadeInDown { 0% { opacity: 0; transform: translate(-50%, -20px); } 100% { opacity: 1; transform: translate(-50%, 0); } }
+
+        /* 淡入上移 */
+        @keyframes fadeInUp {
+          0% { opacity: 0; transform: translateY(20px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 淡入缩放 */
+        @keyframes fadeInScale {
+          0% { opacity: 0; transform: scale(0.9); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+
+        /* 弹性缩放 */
+        @keyframes bounceIn {
+          0% { opacity: 0; transform: scale(0.3); }
+          50% { opacity: 1; transform: scale(1.05); }
+          70% { transform: scale(0.95); }
+          100% { transform: scale(1); }
+        }
+
+        /* 滑入展开 */
+        @keyframes slideDown {
+          0% { opacity: 0; max-height: 0; transform: translateY(-10px); }
+          100% { opacity: 1; max-height: 500px; transform: translateY(0); }
+        }
+
+        /* 弹性滑入 */
+        @keyframes slideInRight {
+          0% { opacity: 0; transform: translateX(30px); }
+          100% { opacity: 1; transform: translateX(0); }
+        }
+
+        /* 脉冲光效 */
+        @keyframes pulse-glow {
+          0%, 100% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.5); }
+          50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.8), 0 0 30px rgba(59, 130, 246, 0.4); }
+        }
+
+        /* 悬浮动画 */
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-5px); }
+        }
+
+        /* 闪烁 */
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+
+        /* 旋转进入 */
+        @keyframes rotateIn {
+          0% { opacity: 0; transform: rotate(-10deg) scale(0.9); }
+          100% { opacity: 1; transform: rotate(0) scale(1); }
+        }
+
+        /* 动画类 */
         .animate-scroll-text { animation: marquee-scroll 6s linear infinite; min-width: fit-content; display: flex; }
+        .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
+        .animate-fade-in-scale { animation: fadeInScale 0.4s ease-out forwards; }
+        .animate-bounce-in { animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards; }
+        .animate-slide-down { animation: slideDown 0.4s ease-out forwards; overflow: hidden; }
+        .animate-slide-in-right { animation: slideInRight 0.4s ease-out forwards; }
+        .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+        .animate-rotate-in { animation: rotateIn 0.4s ease-out forwards; }
+
+        /* 卡片悬浮效果 */
+        .card-hover { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .card-hover:hover { transform: translateY(-4px) scale(1.02); }
+
+        /* 按钮点击效果 */
+        .btn-press { transition: transform 0.15s ease; }
+        .btn-press:active { transform: scale(0.95); }
+
+        /* 延迟动画（用于列表项） */
+        .stagger-1 { animation-delay: 0.05s; }
+        .stagger-2 { animation-delay: 0.1s; }
+        .stagger-3 { animation-delay: 0.15s; }
+        .stagger-4 { animation-delay: 0.2s; }
+        .stagger-5 { animation-delay: 0.25s; }
+
+        /* 滚动条样式 */
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+
+        /* 分组收起/展开动画 */
+        .group-content {
+          transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, padding 0.3s ease;
+          overflow: hidden;
+        }
+        .group-content.collapsed { max-height: 0 !important; opacity: 0; padding-top: 0; padding-bottom: 0; }
+        .group-content.expanded { max-height: 2000px; opacity: 1; }
+
+        /* 图标旋转动画 */
+        .icon-rotate { transition: transform 0.3s ease; }
+        .icon-rotate.rotated { transform: rotate(180deg); }
       `}</style>
 
       <div className={`fixed inset-0 z-0 bg-cover bg-center transition-all duration-700 ${!bgImage ? 'bg-gray-900' : ''}`} style={bgImage ? { backgroundImage: `url(${bgImage})` } : {}} />
@@ -928,12 +1025,12 @@ export default function App() {
         </div>
       )}
 
-      <div className="relative z-10 container mx-auto px-4 py-8 max-w-6xl pb-32 transition-all duration-300">
-        
-        <div className="flex flex-col items-center justify-center mb-8 pt-10 md:pt-14">
-          <div className="w-full max-w-2xl relative group">
+      <div className="relative z-10 container mx-auto px-2 md:px-4 py-8 max-w-[1600px] pb-32 transition-all duration-300">
+
+        <div className="flex flex-col items-center justify-center mb-8 pt-10 md:pt-14 relative z-20">
+          <div className="w-full max-w-2xl relative group animate-fade-in-up">
             {/* 搜索框容器 - 玻璃拟态 */}
-            <div className="relative backdrop-blur-xl bg-white/10 rounded-full border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_32px_rgba(59,130,246,0.2)] transition-all duration-300">
+            <div className="relative backdrop-blur-xl bg-white/10 rounded-full border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_32px_rgba(59,130,246,0.3)] hover:border-white/30 transition-all duration-300 hover:scale-[1.01]">
               <form onSubmit={handleSearch} className="relative w-full flex items-center">
                 {/* 搜索引擎选择器 - 自定义下拉框 */}
                 <div className="relative">
@@ -953,7 +1050,7 @@ export default function App() {
                   </div>
                   {/* 自定义下拉菜单 - 玻璃拟态 */}
                   {isEngineDropdownOpen && (
-                    <div className="absolute top-full left-0 mt-2 z-[70] backdrop-blur-xl bg-white/10 border border-white/20 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden min-w-[120px]">
+                    <div className="absolute top-full left-0 mt-2 z-[70] backdrop-blur-xl bg-white/10 border border-white/20 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden min-w-[120px] animate-slide-down">
                       {Object.entries(SEARCH_ENGINES).map(([key, engine]) => (
                         <button
                           key={key}
@@ -996,7 +1093,7 @@ export default function App() {
             </div>
             {/* 搜索建议下拉 - 玻璃拟态 */}
             {isSearchFocused && searchQuery.trim().length >= 1 && searchSuggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-3 z-[70] backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden">
+              <div className="absolute top-full left-0 right-0 mt-3 z-[70] backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden animate-slide-down">
                 {searchSuggestions.map((suggestion, index) => (
                   <button
                     key={suggestion}
@@ -1042,19 +1139,20 @@ export default function App() {
           onDragCancel={handleDragCancel}
         >
         <div className="space-y-4">
-          {activePage.groups.map(group => {
+          {activePage.groups.map((group, groupIndex) => {
             const groupItems = groupedSites[group] || [];
             if (!isAdmin && groupItems.length === 0) return null;
+            const isCollapsed = collapsedGroups[group];
             return (
-              <div key={group} className="animate-fade-in">
+              <div key={group} className="animate-fade-in-up" style={{ animationDelay: `${groupIndex * 0.1}s` }}>
                 <div className="flex items-center justify-between mb-2 pb-0.5 border-b border-white/5">
                   {editingGroupInline === group ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 animate-fade-in-scale">
                       <input
                         type="text"
                         value={editingGroupInlineName}
                         onChange={(e) => setEditingGroupInlineName(e.target.value)}
-                        className="bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-lg font-bold focus:border-blue-500 focus:outline-none"
+                        className="bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-lg font-bold focus:border-blue-500 focus:outline-none transition-all"
                         autoFocus
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
@@ -1064,32 +1162,48 @@ export default function App() {
                           if (e.key === 'Escape') { setEditingGroupInline(null); setEditingGroupInlineName(''); }
                         }}
                       />
-                      <button onClick={() => { const ok = renameGroup(group, editingGroupInlineName); if (ok) { setEditingGroupInline(null); setEditingGroupInlineName(''); } }} className="p-1 hover:bg-white/10 rounded-md text-green-400 transition" title="保存"><Check size={16} /></button>
-                      <button onClick={() => { setEditingGroupInline(null); setEditingGroupInlineName(''); }} className="p-1 hover:bg-white/10 rounded-md text-white/40 hover:text-white transition" title="取消"><X size={16} /></button>
+                      <button onClick={() => { const ok = renameGroup(group, editingGroupInlineName); if (ok) { setEditingGroupInline(null); setEditingGroupInlineName(''); } }} className="p-1 hover:bg-white/10 rounded-md text-green-400 transition btn-press" title="保存"><Check size={16} /></button>
+                      <button onClick={() => { setEditingGroupInline(null); setEditingGroupInlineName(''); }} className="p-1 hover:bg-white/10 rounded-md text-white/40 hover:text-white transition btn-press" title="取消"><X size={16} /></button>
                     </div>
                   ) : (
-                    <h3 className="text-lg font-bold text-white/90 tracking-tight flex items-center gap-2">{group}</h3>
+                    <button
+                      onClick={() => setCollapsedGroups(prev => ({ ...prev, [group]: !prev[group] }))}
+                      className="text-lg font-bold text-white/90 tracking-tight flex items-center gap-2 hover:text-white transition-colors btn-press"
+                    >
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 12 12"
+                        fill="currentColor"
+                        className={`icon-rotate text-white/40 ${isCollapsed ? '' : 'rotated'}`}
+                      >
+                        <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+                      </svg>
+                      {group}
+                      <span className="text-xs text-white/30 font-normal">({groupItems.length})</span>
+                    </button>
                   )}
                   {isAdmin && editingGroupInline !== group && (
                      <div className="flex gap-1">
-                        <button onClick={() => { setEditingGroupInline(group); setEditingGroupInlineName(group); }} className="p-1 hover:bg-white/10 rounded-md text-white/40 hover:text-blue-400 transition" title="编辑分组名称"><Edit2 size={16} /></button>
-                        <button onClick={() => { setEditingSite({ group, pinned: false }); setIsModalOpen(true); }} className="p-1 hover:bg-white/10 rounded-md text-white/40 hover:text-green-400 transition" title="添加站点"><Plus size={16} /></button>
-                        <button onClick={() => requestRemoveGroup(group)} className="p-1 hover:bg-white/10 rounded-md text-white/40 hover:text-red-400 transition" title="删除分组"><Trash2 size={16} /></button>
+                        <button onClick={() => { setEditingGroupInline(group); setEditingGroupInlineName(group); }} className="p-1 hover:bg-white/10 rounded-md text-white/40 hover:text-blue-400 transition btn-press" title="编辑分组名称"><Edit2 size={16} /></button>
+                        <button onClick={() => { setEditingSite({ group, pinned: false }); setIsModalOpen(true); }} className="p-1 hover:bg-white/10 rounded-md text-white/40 hover:text-green-400 transition btn-press" title="添加站点"><Plus size={16} /></button>
+                        <button onClick={() => requestRemoveGroup(group)} className="p-1 hover:bg-white/10 rounded-md text-white/40 hover:text-red-400 transition btn-press" title="删除分组"><Trash2 size={16} /></button>
                      </div>
                   )}
                 </div>
-                <SortableContext items={groupItems.map(s => s.id)} strategy={rectSortingStrategy}>
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1.5">
-                    {groupItems.map(site => (
-                      isAdmin && !isBatchMode ? (
-                        <SortableSiteCard
-                          key={site.id}
-                          site={site}
-                          isAdmin={isAdmin}
-                          onEdit={() => { setEditingSite(site); setIsModalOpen(true); }}
-                          onDelete={() => requestDeleteSite(site.id)}
-                          isBatchMode={isBatchMode}
-                          isSelected={selectedSiteIds.includes(site.id)}
+                <div className={`group-content ${isCollapsed ? 'collapsed' : 'expanded'}`}>
+                  <SortableContext items={groupItems.map(s => s.id)} strategy={rectSortingStrategy}>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-1.5">
+                      {groupItems.map((site, siteIndex) => (
+                        isAdmin && !isBatchMode ? (
+                          <SortableSiteCard
+                            key={site.id}
+                            site={site}
+                            isAdmin={isAdmin}
+                            onEdit={() => { setEditingSite(site); setIsModalOpen(true); }}
+                            onDelete={() => requestDeleteSite(site.id)}
+                            isBatchMode={isBatchMode}
+                            isSelected={selectedSiteIds.includes(site.id)}
                           onToggleSelect={toggleSiteSelection}
                         />
                       ) : (
@@ -1113,6 +1227,7 @@ export default function App() {
                     )}
                   </div>
                 </SortableContext>
+                </div>
               </div>
             );
           })}
@@ -1171,26 +1286,26 @@ export default function App() {
         </DragOverlay>
         </DndContext>
 
-        <div className="fixed bottom-8 right-8 flex flex-col gap-3 z-40">
+        <div className="fixed bottom-8 right-8 flex flex-col gap-3 z-40 animate-slide-in-right">
           {!isAdmin ? (
-            <button onClick={() => setIsLoginModalOpen(true)} className="w-12 h-12 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-full shadow-lg backdrop-blur-sm flex items-center justify-center transition-all border border-white/10" title="管理员登录">
+            <button onClick={() => setIsLoginModalOpen(true)} className="w-12 h-12 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-full shadow-lg backdrop-blur-sm flex items-center justify-center transition-all border border-white/10 btn-press animate-float" title="管理员登录">
               <Lock size={20} />
             </button>
           ) : (
             <>
-              <button onClick={() => setIsGroupModalOpen(true)} className="w-12 h-12 bg-indigo-600/90 hover:bg-indigo-500 text-white rounded-full shadow-lg shadow-indigo-900/40 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 backdrop-blur-sm" title="管理分组"><LayoutGrid size={18} /></button>
-              <button onClick={() => setIsBgModalOpen(true)} className="w-12 h-12 bg-gray-700/90 hover:bg-gray-600 text-white rounded-full shadow-lg shadow-black/40 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 backdrop-blur-sm" title="设置背景"><ImageIcon size={18} /></button>
-              <button onClick={() => setIsWebDavModalOpen(true)} className="w-12 h-12 bg-cyan-600/90 hover:bg-cyan-500 text-white rounded-full shadow-lg shadow-cyan-900/40 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 backdrop-blur-sm" title="WebDAV"><Settings size={18} /></button>
-              <button onClick={() => importInputRef.current?.click()} className="w-12 h-12 bg-violet-600/90 hover:bg-violet-500 text-white rounded-full shadow-lg shadow-violet-900/40 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 backdrop-blur-sm" title="导入书签"><Upload size={18} /></button>
-              <button onClick={() => setIsBatchMode(v => !v)} className={`w-12 h-12 text-white rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95 backdrop-blur-sm ${isBatchMode ? 'bg-amber-600/90 hover:bg-amber-500 shadow-amber-900/40' : 'bg-white/20 hover:bg-white/30 shadow-black/40'}`} title={isBatchMode ? '退出批量' : '批量删除'}><Trash2 size={18} /></button>
+              <button onClick={() => setIsGroupModalOpen(true)} className="w-12 h-12 bg-indigo-600/90 hover:bg-indigo-500 text-white rounded-full shadow-lg shadow-indigo-900/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press" title="管理分组"><LayoutGrid size={18} /></button>
+              <button onClick={() => setIsBgModalOpen(true)} className="w-12 h-12 bg-gray-700/90 hover:bg-gray-600 text-white rounded-full shadow-lg shadow-black/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press" title="设置背景"><ImageIcon size={18} /></button>
+              <button onClick={() => setIsWebDavModalOpen(true)} className="w-12 h-12 bg-cyan-600/90 hover:bg-cyan-500 text-white rounded-full shadow-lg shadow-cyan-900/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press" title="WebDAV"><Settings size={18} /></button>
+              <button onClick={() => importInputRef.current?.click()} className="w-12 h-12 bg-violet-600/90 hover:bg-violet-500 text-white rounded-full shadow-lg shadow-violet-900/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press" title="导入书签"><Upload size={18} /></button>
+              <button onClick={() => setIsBatchMode(v => !v)} className={`w-12 h-12 text-white rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press ${isBatchMode ? 'bg-amber-600/90 hover:bg-amber-500 shadow-amber-900/40' : 'bg-white/20 hover:bg-white/30 shadow-black/40'}`} title={isBatchMode ? '退出批量' : '批量删除'}><Trash2 size={18} /></button>
               {isBatchMode && (
                 <>
-                  <button onClick={toggleSelectAllSites} className="w-12 h-12 bg-white/20 hover:bg-white/30 text-white rounded-full shadow-lg shadow-black/40 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 backdrop-blur-sm" title={selectedSiteIds.length === (activePage.sites || []).length && (activePage.sites || []).length > 0 ? '取消全选' : '全选'}><Check size={18} /></button>
-                  <button onClick={requestDeleteSelectedSites} disabled={selectedSiteIds.length === 0} className="w-12 h-12 bg-red-600/90 hover:bg-red-500 disabled:opacity-50 disabled:hover:bg-red-600 text-white rounded-full shadow-lg shadow-red-900/40 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 backdrop-blur-sm" title={`删除选中 (${selectedSiteIds.length})`}><Trash2 size={18} /></button>
+                  <button onClick={toggleSelectAllSites} className="w-12 h-12 bg-white/20 hover:bg-white/30 text-white rounded-full shadow-lg shadow-black/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press animate-bounce-in" title={selectedSiteIds.length === (activePage.sites || []).length && (activePage.sites || []).length > 0 ? '取消全选' : '全选'}><Check size={18} /></button>
+                  <button onClick={requestDeleteSelectedSites} disabled={selectedSiteIds.length === 0} className="w-12 h-12 bg-red-600/90 hover:bg-red-500 disabled:opacity-50 disabled:hover:bg-red-600 text-white rounded-full shadow-lg shadow-red-900/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press animate-bounce-in" title={`删除选中 (${selectedSiteIds.length})`}><Trash2 size={18} /></button>
                 </>
               )}
-              <button onClick={() => { setEditingSite(null); setIsModalOpen(true); }} className="w-12 h-12 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg shadow-blue-900/50 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 backdrop-blur-sm" title="添加站点"><Plus size={20} /></button>
-              <button onClick={handleLogout} className="w-12 h-12 bg-red-600/80 hover:bg-red-500 text-white rounded-full shadow-lg shadow-red-900/30 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 backdrop-blur-sm" title="退出登录"><LogOut size={18} /></button>
+              <button onClick={() => { setEditingSite(null); setIsModalOpen(true); }} className="w-12 h-12 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg shadow-blue-900/50 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press animate-pulse-glow" title="添加站点"><Plus size={20} /></button>
+              <button onClick={handleLogout} className="w-12 h-12 bg-red-600/80 hover:bg-red-500 text-white rounded-full shadow-lg shadow-red-900/30 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press" title="退出登录"><LogOut size={18} /></button>
             </>
           )}
         </div>
@@ -1239,15 +1354,15 @@ export default function App() {
       )}
       {confirmConfig.isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setConfirmConfig({ ...confirmConfig, isOpen: false })} />
-          <div className="relative z-10 bg-gray-900 border border-white/10 rounded-xl w-full max-w-sm p-6 shadow-2xl transform transition-all scale-100">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-[fadeInUp_0.2s_ease-out]" onClick={() => setConfirmConfig({ ...confirmConfig, isOpen: false })} />
+          <div className="relative z-10 bg-gray-900 border border-white/10 rounded-xl w-full max-w-sm p-6 shadow-2xl animate-bounce-in">
              <div className="flex flex-col items-center text-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-500"><AlertTriangle size={24} /></div>
+                <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 animate-pulse"><AlertTriangle size={24} /></div>
                 <h3 className="text-lg font-bold text-white">确认操作</h3>
                 <p className="text-white/70 text-sm">{confirmConfig.message}</p>
                 <div className="flex gap-3 w-full mt-2">
-                   <button onClick={() => setConfirmConfig({ ...confirmConfig, isOpen: false })} className="flex-1 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white transition font-medium">取消</button>
-                   <button onClick={confirmConfig.action} className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white transition font-medium shadow-lg shadow-red-900/30">删除</button>
+                   <button onClick={() => setConfirmConfig({ ...confirmConfig, isOpen: false })} className="flex-1 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white transition font-medium btn-press">取消</button>
+                   <button onClick={confirmConfig.action} className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white transition font-medium shadow-lg shadow-red-900/30 btn-press">删除</button>
                 </div>
              </div>
           </div>
@@ -1294,8 +1409,8 @@ function LoginModal({ isOpen, onClose }) {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 bg-gray-900 border border-white/10 rounded-2xl w-full max-w-sm shadow-2xl p-8">
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-[fadeInUp_0.2s_ease-out]" onClick={onClose} />
+      <div className="relative z-10 bg-gray-900 border border-white/10 rounded-2xl w-full max-w-sm shadow-2xl p-8 animate-bounce-in">
         <h2 className="text-2xl font-bold text-white mb-6 text-center">管理员登录</h2>
         {error && <p className="text-red-400 text-sm text-center mb-4 px-2">{error}</p>}
         <button type="button" onClick={handleGoogleLogin} disabled={loading} className="w-full py-3 bg-white hover:bg-gray-100 text-gray-900 rounded-xl font-bold transition shadow-lg flex items-center justify-center gap-2 disabled:opacity-50">
@@ -1308,17 +1423,59 @@ function LoginModal({ isOpen, onClose }) {
 }
 
 function SiteCard({ site, isAdmin, onEdit, onDelete, className = "", isBatchMode = false, isSelected = false, onToggleSelect, isDragging = false }) {
+  const [faviconIndex, setFaviconIndex] = useState(0); // 当前尝试的 favicon 服务索引
   const [imgError, setImgError] = useState(false);
   const textContainerRef = useRef(null);
   const textRef = useRef(null);
   const [shouldScroll, setShouldScroll] = useState(false);
-  useEffect(() => { setImgError(false); }, [site.logo]);
+
+  // 重置 favicon 索引当 site.logo 变化
+  useEffect(() => {
+    setImgError(false);
+    setFaviconIndex(0);
+  }, [site.logo, site.url]);
+
   useLayoutEffect(() => { if (textContainerRef.current && textRef.current) { setShouldScroll(textRef.current.scrollWidth > textContainerRef.current.clientWidth + 2); } }, [site.name, className]);
+
   const mainLink = site.url || site.innerUrl || '#';
   const hasInner = !!site.innerUrl;
   const isInnerOnly = !site.url && site.innerUrl;
+
+  // 计算当前应该显示的图标 URL
+  const domain = getDomainFromUrl(site.url || site.innerUrl || '');
+  const currentLogoUrl = useMemo(() => {
+    // 如果有自定义 logo 且不是自动 favicon，直接使用
+    if (site.logo && !site.useFavicon) {
+      return site.logo;
+    }
+    // 使用多源 favicon 服务
+    if (domain && faviconIndex < FAVICON_SERVICES.length) {
+      return FAVICON_SERVICES[faviconIndex](domain);
+    }
+    return site.logo || '';
+  }, [site.logo, site.useFavicon, domain, faviconIndex]);
+
+  // 图片加载失败时尝试下一个服务
+  const handleImgError = () => {
+    if (site.useFavicon || !site.logo) {
+      // 自动 favicon 模式，尝试下一个服务
+      if (faviconIndex < FAVICON_SERVICES.length - 1) {
+        setFaviconIndex(prev => prev + 1);
+      } else {
+        setImgError(true); // 所有服务都失败
+      }
+    } else {
+      // 自定义 logo 失败，尝试 favicon 服务
+      if (domain && faviconIndex < FAVICON_SERVICES.length - 1) {
+        setFaviconIndex(prev => prev + 1);
+      } else {
+        setImgError(true);
+      }
+    }
+  };
+
   return (
-    <div className={`group relative h-20 md:h-20 hover:bg-white/10 rounded-2xl transition-all duration-200 flex items-center px-3 overflow-hidden w-full ${isDragging ? 'opacity-50 scale-105 shadow-2xl bg-white/20' : ''} ${className}`}>
+    <div className={`group relative h-20 md:h-20 hover:bg-white/10 rounded-2xl transition-all duration-300 flex items-center px-3 overflow-hidden w-full card-hover ${isDragging ? 'opacity-50 scale-105 shadow-2xl bg-white/20' : ''} ${className}`}>
       {!isBatchMode && <a href={mainLink} target="_blank" rel="noreferrer" className="absolute inset-0 z-0" />}
       {isBatchMode && (
         <button
@@ -1331,7 +1488,7 @@ function SiteCard({ site, isAdmin, onEdit, onDelete, className = "", isBatchMode
         </button>
       )}
       <div className="relative z-10 w-14 h-14 flex-shrink-0 bg-white/5 rounded-xl p-1.5 flex items-center justify-center shadow-sm pointer-events-none">
-        {!imgError && site.logo ? <img src={site.logo} alt={site.name} className="w-full h-full object-contain drop-shadow-sm" onError={() => setImgError(true)} /> : <span className="text-xl font-bold text-white/40">{site.name.charAt(0).toUpperCase()}</span>}
+        {!imgError && currentLogoUrl ? <img src={currentLogoUrl} alt={site.name} className="w-full h-full object-contain drop-shadow-sm" onError={handleImgError} /> : <span className="text-xl font-bold text-white/40">{site.name.charAt(0).toUpperCase()}</span>}
       </div>
       <div className="relative z-10 flex-1 min-w-0 flex flex-col justify-center ml-3 overflow-hidden pointer-events-none" ref={textContainerRef}>
         <div className="w-full relative h-6 flex items-center">
@@ -1386,16 +1543,30 @@ function SortableSiteCard({ site, isAdmin, onEdit, onDelete, isBatchMode, isSele
   );
 }
 
-// 辅助函数：计算 favicon URL（使用 DuckDuckGo 图标服务，更稳定）
-const getFaviconUrl = (url) => {
+// 多源 favicon 服务列表
+const FAVICON_SERVICES = [
+  (domain) => `https://icons.duckduckgo.com/ip3/${domain}.ico`,
+  (domain) => `https://www.google.com/s2/favicons?sz=128&domain=${domain}`,
+  (domain) => `https://favicon.im/${domain}`,
+  (domain) => `https://api.iowen.cn/favicon/${domain}.png`,
+  (domain) => `https://${domain}/favicon.ico`,
+];
+
+// 辅助函数：从 URL 提取域名
+const getDomainFromUrl = (url) => {
   try {
-    // 补全协议，避免 new URL 报错
     const fullUrl = /^https?:\/\//.test(url) ? url : `https://${url}`;
-    const domain = new URL(fullUrl).hostname;
-    return `https://icons.duckduckgo.com/ip3/${domain}.ico`;
+    return new URL(fullUrl).hostname;
   } catch (e) {
     return '';
   }
+};
+
+// 辅助函数：计算 favicon URL（默认使用第一个服务）
+const getFaviconUrl = (url) => {
+  const domain = getDomainFromUrl(url);
+  if (!domain) return '';
+  return FAVICON_SERVICES[0](domain);
 };
 
 function SiteModal({ isOpen, onClose, onSubmit, initialData, groups }) {
@@ -1573,8 +1744,8 @@ function BgModal({ isOpen, onClose, currentBg, onSave }) {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
-      <div className="relative z-10 backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl w-full max-w-md p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-md animate-[fadeInUp_0.2s_ease-out]" onClick={onClose} />
+      <div className="relative z-10 backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl w-full max-w-md p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)] animate-fade-in-scale">
         <div className="flex justify-between items-center mb-5">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <ImageIcon size={20} className="text-cyan-400" />
@@ -1652,8 +1823,8 @@ function GroupModal({ isOpen, onClose, groups, onAdd, onRemove, onRename, onMove
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
-      <div className="relative z-10 backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl w-full max-w-md p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-md animate-[fadeInUp_0.2s_ease-out]" onClick={onClose} />
+      <div className="relative z-10 backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl w-full max-w-md p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)] animate-fade-in-scale">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <LayoutGrid size={20} className="text-indigo-400" />
@@ -1797,8 +1968,8 @@ function ImportModal({ isOpen, onClose, importData, existingGroups, onConfirm })
 
   return (
     <div className="fixed inset-0 z-[85] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
-      <div className="relative z-10 backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl w-full max-w-md p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-md animate-[fadeInUp_0.2s_ease-out]" onClick={onClose} />
+      <div className="relative z-10 backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl w-full max-w-md p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)] animate-fade-in-scale">
         <div className="flex justify-between items-center mb-5">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <Upload size={20} className="text-violet-400" />
