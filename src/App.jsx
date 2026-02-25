@@ -28,7 +28,6 @@ import {
 // --- 1. 引入 Firebase 核心与数据库 ---
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, onSnapshot, setDoc, enableIndexedDbPersistence } from "firebase/firestore";
-import { getFunctions, httpsCallable } from "firebase/functions";
 // --- 2. 引入 Firebase 身份认证 ---
 import { 
   getAuth, 
@@ -54,7 +53,6 @@ const firebaseConfig = {
 // 初始化 Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const cloudFunctions = getFunctions(app);
 const auth = getAuth(app); 
 
 // 启用离线持久化
@@ -275,12 +273,19 @@ export default function App() {
     };
 
     try {
-      const backupCallable = httpsCallable(cloudFunctions, 'webdavBackup');
-      await backupCallable({ config, backupData });
+      const response = await fetch('/api/webdav-backup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config, backupData }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.error || `HTTP ${response.status}`);
+      }
       alert('WebDAV 备份成功。');
     } catch (error) {
       console.error('WebDAV 备份失败:', error);
-      const detail = error?.message || '请检查 Firebase 函数部署状态和 WebDAV 配置。';
+      const detail = error?.message || '请检查 Vercel API 和 WebDAV 配置。';
       alert(`WebDAV 备份失败：${detail}`);
     }
   };
@@ -291,9 +296,16 @@ export default function App() {
     if (!validateWebDavConfig(config)) return;
 
     try {
-      const restoreCallable = httpsCallable(cloudFunctions, 'webdavRestore');
-      const result = await restoreCallable({ config });
-      const backupData = result?.data?.backupData;
+      const response = await fetch('/api/webdav-restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.error || `HTTP ${response.status}`);
+      }
+      const backupData = payload?.backupData;
       const restoredPages = Array.isArray(backupData?.pages) ? backupData.pages : null;
       const restoredBgImage = typeof backupData?.bgImage === 'string' && backupData.bgImage.trim()
         ? backupData.bgImage
@@ -318,7 +330,7 @@ export default function App() {
       alert('WebDAV 恢复成功。');
     } catch (error) {
       console.error('WebDAV 恢复失败:', error);
-      const detail = error?.message || '请检查 Firebase 函数部署状态和 WebDAV 配置。';
+      const detail = error?.message || '请检查 Vercel API 和 WebDAV 配置。';
       alert(`WebDAV 恢复失败：${detail}`);
     }
   };
