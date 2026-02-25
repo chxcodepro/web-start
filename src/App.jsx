@@ -1024,9 +1024,9 @@ export default function App() {
         </div>
       )}
 
-      <div className="relative z-10 container mx-auto px-2 md:px-4 py-8 max-w-[1600px] pb-32 transition-all duration-300">
+      <div className="relative z-10 container mx-auto px-4 md:px-6 py-8 max-w-[1600px] pb-40 transition-all duration-300">
 
-        <div className="flex flex-col items-center justify-center mb-8 pt-10 md:pt-14 relative z-20">
+        <div className={`flex flex-col items-center justify-center mb-8 pt-10 md:pt-14 relative ${isSearchFocused ? 'z-40' : 'z-20'}`}>
           <div className="w-full max-w-2xl relative group animate-fade-in-up">
             {/* 搜索框容器 - 玻璃拟态 */}
             <div className="relative backdrop-blur-xl bg-white/10 rounded-full border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_32px_rgba(59,130,246,0.3)] hover:border-white/30 transition-all duration-300 hover:scale-[1.01]">
@@ -1116,6 +1116,14 @@ export default function App() {
             )}
           </div>
         </div>
+
+        {/* 搜索聚焦时的遮罩层 */}
+        {isSearchFocused && (
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 animate-fade-in"
+            onClick={() => setIsSearchFocused(false)}
+          />
+        )}
 
         {pinnedSites.length > 0 && (
           <div className="mb-6 animate-fade-in-up">
@@ -1606,7 +1614,6 @@ const getDomainFromUrl = (url) => {
 
 // 多源 favicon 服务列表（按优先级排序）
 const FAVICON_SERVICES = [
-  (domain) => `https://cravatar.cn/favicon/api/index.php?url=${domain}`,
   (domain) => `https://toolb.cn/favicon/${domain}`,
   (domain) => `https://www.google.com/s2/favicons?sz=64&domain=${domain}`,
   (domain) => `https://icon.horse/icon/${domain}`,
