@@ -1,5 +1,8 @@
 // 常量和默认配置
 
+// 应用版本号（从 package.json 同步）
+export const APP_VERSION = '0.1.0';
+
 // 默认站点数据
 export const DEFAULT_SITES = [
   { id: '1', name: 'Bilibili', url: 'https://www.bilibili.com', innerUrl: '', logo: 'https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/bilibili.png', group: '媒体', pinned: false },

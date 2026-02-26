@@ -16,6 +16,7 @@ import {
 import GitHubStarsPage from './components/stars/GitHubStarsPage';
 import LoadingPage from './components/LoadingPage';
 import MainPage from './components/MainPage';
+import VersionTag from './components/VersionTag';
 
 // Hooks
 import { useFirebase } from './hooks/useFirebase';
@@ -374,15 +375,15 @@ export default function App() {
       {/* 确认弹窗 */}
       {confirmConfig.isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-[fadeInUp_0.2s_ease-out]" onClick={() => setConfirmConfig({ ...confirmConfig, isOpen: false })} />
-          <div className="relative z-10 bg-gray-900 border border-white/10 rounded-xl w-full max-w-sm p-6 shadow-2xl animate-bounce-in">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-md animate-[fadeInUp_0.2s_ease-out]" onClick={() => setConfirmConfig({ ...confirmConfig, isOpen: false })} />
+          <div className="relative z-10 backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl w-full max-w-sm p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)] animate-fade-in-scale">
             <div className="flex flex-col items-center text-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 animate-pulse"><AlertTriangle size={24} /></div>
+              <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center text-red-400 animate-pulse"><AlertTriangle size={24} /></div>
               <h3 className="text-lg font-bold text-white">确认操作</h3>
               <p className="text-white/70 text-sm">{confirmConfig.message}</p>
               <div className="flex gap-3 w-full mt-2">
-                <button onClick={() => setConfirmConfig({ ...confirmConfig, isOpen: false })} className="flex-1 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white transition font-medium btn-press">取消</button>
-                <button onClick={confirmConfig.action} className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white transition font-medium shadow-lg shadow-red-900/30 btn-press">删除</button>
+                <button onClick={() => setConfirmConfig({ ...confirmConfig, isOpen: false })} className="flex-1 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white transition font-medium btn-press">取消</button>
+                <button onClick={confirmConfig.action} className="flex-1 py-2.5 rounded-xl bg-red-600/90 hover:bg-red-500 text-white transition font-medium shadow-lg shadow-red-900/30 btn-press">删除</button>
               </div>
             </div>
           </div>
@@ -391,6 +392,9 @@ export default function App() {
 
       {/* Toast 提示 */}
       <ToastMessage toast={toast} />
+
+      {/* 版本标签 */}
+      <VersionTag isAdmin={isAdmin} />
     </div>
   );
 }

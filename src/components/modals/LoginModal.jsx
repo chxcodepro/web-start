@@ -30,8 +30,8 @@ export default function LoginModal({ isOpen, onClose }) {
 
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-[fadeInUp_0.2s_ease-out]" onClick={onClose} />
-      <div className="relative z-10 bg-gray-900 border border-white/10 rounded-2xl w-full max-w-sm shadow-2xl p-8 animate-bounce-in">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-md animate-[fadeInUp_0.2s_ease-out]" onClick={onClose} />
+      <div className="relative z-10 backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl w-full max-w-sm shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-8 animate-fade-in-scale">
         <h2 className="text-2xl font-bold text-white mb-6 text-center">管理员登录</h2>
         {error && <p className="text-red-400 text-sm text-center mb-4 px-2">{error}</p>}
         <button
@@ -54,8 +54,8 @@ export default function LoginModal({ isOpen, onClose }) {
             </>
           )}
         </button>
-        <button onClick={onClose} className="absolute top-4 right-4 text-white/30 hover:text-white">
-          <X size={20} />
+        <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition">
+          <X size={18} className="text-white/70 hover:text-white" />
         </button>
       </div>
     </div>
