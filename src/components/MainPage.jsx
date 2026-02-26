@@ -98,7 +98,7 @@ export default function MainPage({
         </div>
       )}
 
-      <div className="relative z-10 container mx-auto pl-8 pr-4 md:pl-16 md:pr-6 py-8 max-w-[1600px] pb-40 transition-all duration-300">
+      <div className="relative z-10 container mx-auto pl-8 pr-20 md:pl-16 md:pr-24 py-8 max-w-[1600px] pb-40 transition-all duration-300">
         {/* 搜索框区域 */}
         <SearchBox
           searchQuery={searchQuery}

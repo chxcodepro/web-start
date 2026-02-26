@@ -1,5 +1,5 @@
 // 主应用组件
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Check, AlertTriangle } from 'lucide-react';
 
 // 组件
@@ -36,11 +36,11 @@ export default function App() {
   const [isBgModalOpen, setIsBgModalOpen] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
-  // Toast 提示函数
-  const showToast = (message, type = 'success') => {
+  // Toast 提示函数（使用 useCallback 保持引用稳定，避免触发下游 Hook 重复执行）
+  const showToast = useCallback((message, type = 'success') => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
-  };
+  }, []);
 
   // Firebase Hook
   const firebase = useFirebase({ showToast });
