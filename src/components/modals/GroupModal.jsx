@@ -1,5 +1,6 @@
 // 综合管理面板组件
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Check, Edit2, Trash2, LayoutGrid, Plus, Search, GripVertical } from 'lucide-react';
 import {
   FAVICON_SERVICES,
@@ -389,19 +390,22 @@ export default function GroupModal({
           </div>
 
           {/* 拖拽预览 */}
-          <DragOverlay dropAnimation={null} zIndex={9999}>
-            {activeDragItem?.type === 'group' && (
-              <div className="px-3 py-2 bg-indigo-500/80 text-white rounded-lg shadow-lg backdrop-blur-sm">
-                <div className="flex items-center gap-2">
-                  <GripVertical size={14} className="text-white/60" />
-                  {activeDragItem.name}
+          {typeof document !== 'undefined' && document.body && createPortal(
+            <DragOverlay dropAnimation={null} zIndex={9999}>
+              {activeDragItem?.type === 'group' && (
+                <div className="px-3 py-2 bg-indigo-500/80 text-white rounded-lg shadow-lg backdrop-blur-sm">
+                  <div className="flex items-center gap-2">
+                    <GripVertical size={14} className="text-white/60" />
+                    {activeDragItem.name}
+                  </div>
                 </div>
-              </div>
-            )}
-            {activeDragItem?.type === 'site' && activeDragItem.site && (
-              <DragOverlaySiteCard site={activeDragItem.site} />
-            )}
-          </DragOverlay>
+              )}
+              {activeDragItem?.type === 'site' && activeDragItem.site && (
+                <DragOverlaySiteCard site={activeDragItem.site} />
+              )}
+            </DragOverlay>,
+            document.body
+          )}
         </DndContext>
       </div>
     </div>
