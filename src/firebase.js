@@ -1,6 +1,6 @@
 // Firebase 配置和初始化
 import { initializeApp } from "firebase/app";
-import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 /**
@@ -18,20 +18,14 @@ const firebaseConfig = {
 
 // 初始化 Firebase
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
 
-// 启用离线持久化
-try {
-  enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code === 'failed-precondition') {
-      console.log('多标签页同时打开可能导致持久化失败');
-    } else if (err.code === 'unimplemented') {
-      console.log('当前浏览器不支持持久化');
-    }
-  });
-} catch (e) {
-  console.log("持久化初始化错误", e);
-}
+// 使用新 API 初始化 Firestore，支持多标签页离线持久化
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager()
+  })
+});
+
+const auth = getAuth(app);
 
 export { app, db, auth };

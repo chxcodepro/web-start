@@ -5,3 +5,4 @@ export { default as BgModal } from './BgModal';
 export { default as GroupModal } from './GroupModal';
 export { default as ImportModal } from './ImportModal';
 export { default as WebDavModal } from './WebDavModal';
+export { default as GitHubStarsSettingsModal } from './GitHubStarsSettingsModal';

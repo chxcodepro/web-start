@@ -22,6 +22,7 @@
 - 可视化管理：页面、分组、站点均可在 UI 中管理。
 - 书签导入：支持导入浏览器书签 HTML，自动按文件夹生成页面和分组。
 - 批量删除：支持单选、全选、批量删除站点。
+- **GitHub Stars 管理**：获取 GitHub Stars，使用 AI 自动分组，独立页面展示。
 
 ## 部署说明（Vercel + Firebase）
 
@@ -73,9 +74,45 @@ service cloud.firestore {
 ## 本地开发
 
 ```bash
-npm install  #安装依赖
-npm run dev  #启动服务
+npm install
+npm run dev
 ```
+
+## GitHub Stars 功能配置
+
+### 方式一：Personal Access Token（推荐）
+
+1. 访问 [GitHub Token 设置页](https://github.com/settings/tokens/new?scopes=read:user&description=My-Nav-Stars)
+2. 创建一个具有 `read:user` 权限的 Token
+3. 在导航页管理员模式下，点击 ⭐ 按钮打开 Stars 页面
+4. 进入设置，选择 PAT 认证方式，粘贴 Token 并测试连接
+
+### 方式二：OAuth 授权（可选）
+
+需要创建 GitHub OAuth App 并配置环境变量：
+
+1. 访问 [GitHub OAuth Apps](https://github.com/settings/developers) 创建新应用
+2. 填写信息：
+   - Application name: `My Nav Stars`
+   - Homepage URL: 你的部署地址（如 `https://your-domain.com`）
+   - Authorization callback URL: `https://your-domain.com/oauth-callback`
+3. 创建后获取 Client ID 和 Client Secret
+4. 在 Vercel 项目设置中添加环境变量：
+   ```
+   GITHUB_CLIENT_ID=你的Client ID
+   GITHUB_CLIENT_SECRET=你的Client Secret
+   ```
+
+### AI 自动分组配置
+
+Stars 功能支持使用 AI 自动对仓库进行分组，支持以下服务商：
+
+- **OpenAI**：使用 GPT-4o-mini 模型
+- **Anthropic**：使用 Claude-3.5-haiku 模型
+- **Google**：使用 Gemini-2.0-flash 模型
+- **自定义**：任何 OpenAI 兼容的 API 端点
+
+在 Stars 设置中选择 AI 服务商并填入 API Key 即可使用。
 
 ## 许可证
 

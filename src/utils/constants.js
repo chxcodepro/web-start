@@ -61,3 +61,47 @@ export const DEFAULT_WEB_DAV_CONFIG = {
 export const SINGLE_PAGE_ID = 'home';
 export const SINGLE_PAGE_NAME = '首页';
 export const BOOKMARK_UNGROUPED_GROUP = '未分组的书签';
+
+// GitHub Stars 功能相关常量
+export const GITHUB_STARS_STORAGE_KEY = 'my-nav-github-stars-enabled';
+export const GITHUB_STARS_VIEW_KEY = 'my-nav-github-stars-view';
+
+// AI 服务商配置
+export const AI_PROVIDERS = {
+  openai: {
+    name: 'OpenAI',
+    endpoint: 'https://api.openai.com/v1/chat/completions',
+    model: 'gpt-4o-mini',
+  },
+  anthropic: {
+    name: 'Claude',
+    endpoint: 'https://api.anthropic.com/v1/messages',
+    model: 'claude-3-5-haiku-latest',
+  },
+  google: {
+    name: 'Gemini',
+    endpoint: 'https://generativelanguage.googleapis.com/v1beta/models',
+    model: 'gemini-2.0-flash',
+  },
+  custom: {
+    name: '自定义',
+    endpoint: '',
+    model: '',
+  },
+};
+
+// GitHub Stars 默认配置
+export const DEFAULT_STARS_CONFIG = {
+  github: {
+    authType: 'pat', // 'pat' | 'oauth'
+    accessToken: '',
+    username: '',
+    avatarUrl: '',
+  },
+  aiConfig: {
+    provider: 'openai',
+    apiKey: '',
+    customEndpoint: '',
+    customModel: '',
+  },
+};
