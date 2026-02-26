@@ -207,6 +207,44 @@ export function useSiteManager({ pages, activePage, isAdmin, isLoading, savePage
     });
   };
 
+  // 跨分组移动单个网站
+  const moveSiteToGroup = (siteId, targetGroup) => {
+    updateCurrentPageData(p => ({
+      ...p,
+      sites: p.sites.map(s =>
+        s.id === siteId ? { ...s, group: targetGroup } : s
+      )
+    }));
+  };
+
+  // 跨分组批量移动网站
+  const moveSitesToGroup = (siteIds, targetGroup) => {
+    const idSet = new Set(siteIds);
+    updateCurrentPageData(p => ({
+      ...p,
+      sites: p.sites.map(s =>
+        idSet.has(s.id) ? { ...s, group: targetGroup } : s
+      )
+    }));
+  };
+
+  // 分组拖动排序
+  const reorderGroups = (oldIndex, newIndex) => {
+    updateCurrentPageData(p => ({
+      ...p,
+      groups: arrayMove(p.groups, oldIndex, newIndex)
+    }));
+  };
+
+  // 批量删除网站
+  const deleteSites = (siteIds) => {
+    const idSet = new Set(siteIds);
+    updateCurrentPageData(p => ({
+      ...p,
+      sites: p.sites.filter(s => !idSet.has(s.id))
+    }));
+  };
+
   // 批量选择
   const toggleSiteSelection = (siteId) => {
     setSelectedSiteIds((prev) => {
@@ -294,6 +332,11 @@ export function useSiteManager({ pages, activePage, isAdmin, isLoading, savePage
     renameGroup,
     moveGroup,
     requestRemoveGroup,
+    reorderGroups,
+    // 跨分组移动
+    moveSiteToGroup,
+    moveSitesToGroup,
+    deleteSites,
     // 批量选择
     toggleSiteSelection,
     toggleSelectAllSites,

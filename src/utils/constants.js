@@ -49,9 +49,9 @@ export const SEARCH_ENGINES = {
   },
 };
 
-// WebDAV 默认配置
+// WebDAV 默认配置（坚果云）
 export const DEFAULT_WEB_DAV_CONFIG = {
-  url: '',
+  url: 'https://dav.jianguoyun.com/dav/',
   username: '',
   password: '',
   filePath: '/my-nav-backup.json',

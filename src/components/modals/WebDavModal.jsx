@@ -25,11 +25,13 @@ export default function WebDavModal({ isOpen, onClose, initialConfig, onSaveConf
 
   return (
     <div className="fixed inset-0 z-[85] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 bg-gray-900 border border-white/10 rounded-2xl w-full max-w-lg p-6 shadow-2xl">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-md animate-[fadeInUp_0.2s_ease-out]" onClick={onClose} />
+      <div className="relative z-10 backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl w-full max-w-lg p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)] animate-fade-in-scale">
         <div className="flex justify-between items-center mb-5">
           <h2 className="text-xl font-bold text-white">WebDAV 手动备份</h2>
-          <button onClick={onClose} className="text-white/40 hover:text-white transition"><X size={20} /></button>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition">
+            <X size={18} className="text-white/70 hover:text-white" />
+          </button>
         </div>
 
         <div className="space-y-4">
@@ -39,7 +41,7 @@ export default function WebDavModal({ isOpen, onClose, initialConfig, onSaveConf
               type="text"
               value={formData.url}
               onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
-              placeholder="https://dav.example.com/remote.php/dav/files/用户名"
+              placeholder="https://dav.jianguoyun.com/dav/"
               className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white focus:border-cyan-500 focus:bg-white/10 focus:outline-none text-sm"
             />
           </div>

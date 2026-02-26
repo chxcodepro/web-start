@@ -14,6 +14,7 @@ import {
   User,
   Upload,
   Star,
+  Home,
 } from 'lucide-react';
 import {
   DndContext,
@@ -84,11 +85,15 @@ export default function MainPage({
   setIsBgModalOpen,
   setIsWebDavModalOpen,
   setShowStarsPage,
+  showStarsPage,
   importInputRef,
   handleLogout,
 }) {
   return (
     <>
+      {/* 左上角 Tab 导航 */}
+      <PageTabs showStarsPage={showStarsPage} setShowStarsPage={setShowStarsPage} />
+
       {/* 管理员模式提示 */}
       {isAdmin && (
         <div className="fixed top-0 left-0 right-0 z-[60] flex justify-center pointer-events-none">
@@ -546,6 +551,40 @@ function FloatingButtons({
           <button onClick={handleLogout} className="w-12 h-12 bg-red-600/80 hover:bg-red-500 text-white rounded-full shadow-lg shadow-red-900/30 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press" title="退出登录"><LogOut size={18} /></button>
         </>
       )}
+    </div>
+  );
+}
+
+/**
+ * 页面 Tab 导航组件
+ */
+function PageTabs({ showStarsPage, setShowStarsPage }) {
+  return (
+    <div className="fixed top-4 left-8 z-50">
+      <div className="flex bg-white/10 backdrop-blur-xl rounded-xl p-1 border border-white/10 shadow-lg">
+        <button
+          onClick={() => setShowStarsPage(false)}
+          className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${
+            !showStarsPage
+              ? 'bg-white/20 text-white shadow-sm'
+              : 'text-white/60 hover:text-white hover:bg-white/10'
+          }`}
+        >
+          <Home size={16} />
+          导航
+        </button>
+        <button
+          onClick={() => setShowStarsPage(true)}
+          className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${
+            showStarsPage
+              ? 'bg-white/20 text-white shadow-sm'
+              : 'text-white/60 hover:text-white hover:bg-white/10'
+          }`}
+        >
+          <Star size={16} />
+          Stars
+        </button>
+      </div>
     </div>
   );
 }

@@ -143,6 +143,10 @@ export default function App() {
     renameGroup,
     moveGroup,
     requestRemoveGroup,
+    reorderGroups,
+    moveSiteToGroup,
+    moveSitesToGroup,
+    deleteSites,
     toggleSiteSelection,
     toggleSelectAllSites,
     requestDeleteSelectedSites,
@@ -193,8 +197,8 @@ export default function App() {
     );
   }
 
-  // Stars 页面
-  if (showStarsPage && isAdmin) {
+  // Stars 页面（未登录也能访问，但功能受限）
+  if (showStarsPage) {
     return (
       <div className="min-h-screen w-full text-white relative font-sans selection:bg-purple-500 selection:text-white">
         <style>{globalStyles}</style>
@@ -293,6 +297,7 @@ export default function App() {
         setIsBgModalOpen={setIsBgModalOpen}
         setIsWebDavModalOpen={setIsWebDavModalOpen}
         setShowStarsPage={setShowStarsPage}
+        showStarsPage={showStarsPage}
         importInputRef={importInputRef}
         handleLogout={handleLogout}
       />
@@ -315,10 +320,24 @@ export default function App() {
           isOpen={isGroupModalOpen}
           onClose={() => setIsGroupModalOpen(false)}
           groups={activePage.groups}
-          onAdd={addGroup}
-          onRemove={requestRemoveGroup}
-          onRename={renameGroup}
-          onMove={moveGroup}
+          sites={activePage.sites}
+          onAddGroup={addGroup}
+          onRemoveGroup={(name) => {
+            requestRemoveGroup(name);
+          }}
+          onRenameGroup={renameGroup}
+          onReorderGroups={reorderGroups}
+          onMoveSiteToGroup={moveSiteToGroup}
+          onMoveSitesToGroup={moveSitesToGroup}
+          onDeleteSites={deleteSites}
+          onEditSite={(site) => {
+            setEditingSite(site);
+            setIsModalOpen(true);
+          }}
+          onAddSite={(group) => {
+            setEditingSite({ group, pinned: false });
+            setIsModalOpen(true);
+          }}
           showToast={showToast}
         />
       )}
