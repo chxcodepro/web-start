@@ -194,7 +194,6 @@ export default function MainPage({
           setIsGroupModalOpen={setIsGroupModalOpen}
           setIsBgModalOpen={setIsBgModalOpen}
           setIsWebDavModalOpen={setIsWebDavModalOpen}
-          setShowStarsPage={setShowStarsPage}
           importInputRef={importInputRef}
           setEditingSite={setEditingSite}
           setIsModalOpen={setIsModalOpen}
@@ -521,7 +520,6 @@ function FloatingButtons({
   setIsGroupModalOpen,
   setIsBgModalOpen,
   setIsWebDavModalOpen,
-  setShowStarsPage,
   importInputRef,
   setEditingSite,
   setIsModalOpen,
@@ -538,7 +536,6 @@ function FloatingButtons({
           <button onClick={() => setIsGroupModalOpen(true)} className="w-12 h-12 bg-indigo-600/90 hover:bg-indigo-500 text-white rounded-full shadow-lg shadow-indigo-900/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press" title="管理分组"><LayoutGrid size={18} /></button>
           <button onClick={() => setIsBgModalOpen(true)} className="w-12 h-12 bg-gray-700/90 hover:bg-gray-600 text-white rounded-full shadow-lg shadow-black/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press" title="设置背景"><ImageIcon size={18} /></button>
           <button onClick={() => setIsWebDavModalOpen(true)} className="w-12 h-12 bg-cyan-600/90 hover:bg-cyan-500 text-white rounded-full shadow-lg shadow-cyan-900/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press" title="WebDAV"><Settings size={18} /></button>
-          <button onClick={() => setShowStarsPage(true)} className="w-12 h-12 bg-yellow-600/90 hover:bg-yellow-500 text-white rounded-full shadow-lg shadow-yellow-900/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press" title="GitHub Stars"><Star size={18} /></button>
           <button onClick={() => importInputRef.current?.click()} className="w-12 h-12 bg-violet-600/90 hover:bg-violet-500 text-white rounded-full shadow-lg shadow-violet-900/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press" title="导入书签"><Upload size={18} /></button>
           <button onClick={() => setIsBatchMode(v => !v)} className={`w-12 h-12 text-white rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press ${isBatchMode ? 'bg-amber-600/90 hover:bg-amber-500 shadow-amber-900/40' : 'bg-white/20 hover:bg-white/30 shadow-black/40'}`} title={isBatchMode ? '退出批量' : '批量删除'}><Trash2 size={18} /></button>
           {isBatchMode && (

@@ -1,9 +1,11 @@
 // 综合管理面板组件
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { X, Check, Edit2, Trash2, LayoutGrid, Plus, Search, GripVertical } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
+  pointerWithin,
+  rectIntersection,
   DragOverlay,
   useDroppable,
   PointerSensor,
@@ -51,6 +53,21 @@ export default function GroupModal({
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+
+  // 自定义碰撞检测：拖动网站时优先检测分组放置区域
+  const customCollisionDetection = useCallback((args) => {
+    // 如果正在拖动网站，优先检测分组放置区域
+    if (dragType === 'site') {
+      const pointerCollisions = pointerWithin(args);
+      // 优先返回分组放置目标
+      const groupDropTarget = pointerCollisions.find(c => c.data?.droppableContainer?.data?.current?.type === 'group-drop');
+      if (groupDropTarget) {
+        return [groupDropTarget];
+      }
+    }
+    // 默认使用 closestCenter
+    return closestCenter(args);
+  }, [dragType]);
 
   // 当前分组的网站列表
   const currentGroupSites = useMemo(() => {
@@ -183,7 +200,7 @@ export default function GroupModal({
         {/* 主体内容 */}
         <DndContext
           sensors={sensors}
-          collisionDetection={closestCenter}
+          collisionDetection={customCollisionDetection}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
           onDragCancel={handleDragCancel}

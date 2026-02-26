@@ -86,7 +86,7 @@ export default function SiteModal({ isOpen, onClose, onSubmit, onBatchSubmit, in
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-md animate-[fadeInUp_0.2s_ease-out]" onClick={onClose} />
       <div className="relative z-10 backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl w-full max-w-md shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-6 animate-fade-in-scale">
         <div className="flex justify-between items-center mb-6">
