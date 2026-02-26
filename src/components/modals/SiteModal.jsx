@@ -19,7 +19,10 @@ export default function SiteModal({ isOpen, onClose, onSubmit, onBatchSubmit, in
   // 编辑模式下禁用批量
   const isEditMode = !!initialData?.id;
 
+  // 初始化表单数据（仅在弹窗打开时触发一次）
   useEffect(() => {
+    if (!isOpen) return; // 弹窗关闭时不执行
+
     if (initialData) {
       const mergedUrl = initialData.url || initialData.innerUrl || '';
       setFormData({
@@ -30,6 +33,7 @@ export default function SiteModal({ isOpen, onClose, onSubmit, onBatchSubmit, in
       });
       setIsBatchMode(false);
     } else {
+      // 新增模式：重置表单但保持批量模式状态
       setFormData({
         name: '',
         url: '',
@@ -41,7 +45,9 @@ export default function SiteModal({ isOpen, onClose, onSubmit, onBatchSubmit, in
       setBatchGroup(groups[0] || '默认');
       setBatchPinned(false);
     }
-  }, [initialData, groups]);
+    // 仅依赖 isOpen，在弹窗打开时初始化一次
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
