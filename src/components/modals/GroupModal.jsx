@@ -388,8 +388,8 @@ export default function GroupModal({
             </div>
           </div>
 
-          {/* 拖拽预览 - 使用 dropAnimation=null 防止位置偏移 */}
-          <DragOverlay dropAnimation={null}>
+          {/* 拖拽预览 */}
+          <DragOverlay dropAnimation={null} zIndex={9999}>
             {activeDragItem?.type === 'group' && (
               <div className="px-3 py-2 bg-indigo-500/80 text-white rounded-lg shadow-lg backdrop-blur-sm">
                 <div className="flex items-center gap-2">

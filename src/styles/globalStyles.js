@@ -3,14 +3,14 @@ export const globalStyles = `
   /* 基础动画 */
   @keyframes marquee-scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
   @keyframes fadeInDown { 0% { opacity: 0; transform: translate(-50%, -20px); } 100% { opacity: 1; transform: translate(-50%, 0); } }
-  @keyframes fadeInUp { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
-  @keyframes fadeInScale { 0% { opacity: 0; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }
-  @keyframes bounceIn { 0% { opacity: 0; transform: scale(0.3); } 50% { opacity: 1; transform: scale(1.05); } 70% { transform: scale(0.95); } 100% { transform: scale(1); } }
-  @keyframes slideDown { 0% { opacity: 0; max-height: 0; transform: translateY(-10px); } 100% { opacity: 1; max-height: 500px; transform: translateY(0); } }
-  @keyframes slideInRight { 0% { opacity: 0; transform: translateX(30px); } 100% { opacity: 1; transform: translateX(0); } }
+  @keyframes fadeInUp { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: none; } }
+  @keyframes fadeInScale { 0% { opacity: 0; transform: scale(0.9); } 100% { opacity: 1; transform: none; } }
+  @keyframes bounceIn { 0% { opacity: 0; transform: scale(0.3); } 50% { opacity: 1; transform: scale(1.05); } 70% { transform: scale(0.95); } 100% { transform: none; } }
+  @keyframes slideDown { 0% { opacity: 0; max-height: 0; transform: translateY(-10px); } 100% { opacity: 1; max-height: 500px; transform: none; } }
+  @keyframes slideInRight { 0% { opacity: 0; transform: translateX(30px); } 100% { opacity: 1; transform: none; } }
   @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.5); } 50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.8), 0 0 30px rgba(59, 130, 246, 0.4); } }
   @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-  @keyframes rotateIn { 0% { opacity: 0; transform: rotate(-10deg) scale(0.9); } 100% { opacity: 1; transform: rotate(0) scale(1); } }
+  @keyframes rotateIn { 0% { opacity: 0; transform: rotate(-10deg) scale(0.9); } 100% { opacity: 1; transform: none; } }
 
   /* 动画类 */
   .animate-scroll-text { animation: marquee-scroll 6s linear infinite; min-width: fit-content; display: flex; }
