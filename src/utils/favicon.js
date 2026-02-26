@@ -4,11 +4,17 @@ const FAVICON_CACHE_KEY = 'favicon-cache';
 const FAVICON_CACHE_EXPIRE = 7 * 24 * 60 * 60 * 1000; // 7天过期
 
 // 多源 favicon 服务列表（按优先级排序）
+// 注意：
+// 1. Google API 在国内可能被墙，但能识别各种格式的 favicon
+// 2. 直接获取网站的 favicon 文件，支持 svg/ico/png 格式
+// 3. favicon.im 和 icon.horse 作为备用（icon.horse 找不到时返回字母占位图）
 export const FAVICON_SERVICES = [
   (domain) => `https://www.google.com/s2/favicons?sz=64&domain=${domain}`,
-  (domain) => `https://icon.horse/icon/${domain}`,
-  (domain) => `https://favicon.im/${domain}?larger=true`,
+  (domain) => `https://${domain}/favicon.svg`,
   (domain) => `https://${domain}/favicon.ico`,
+  (domain) => `https://${domain}/favicon.png`,
+  (domain) => `https://favicon.im/${domain}?larger=true`,
+  (domain) => `https://icon.horse/icon/${domain}`,
 ];
 
 // 获取图标缓存

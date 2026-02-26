@@ -1,6 +1,12 @@
 // 综合管理面板组件
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { X, Check, Edit2, Trash2, LayoutGrid, Plus, Search, GripVertical } from 'lucide-react';
+import {
+  FAVICON_SERVICES,
+  getDomainFromUrl,
+  getCachedFavicon,
+  setFaviconCache,
+} from '../../utils/favicon';
 import {
   DndContext,
   closestCenter,
@@ -382,30 +388,65 @@ export default function GroupModal({
             </div>
           </div>
 
-          {/* 拖拽预览 */}
-          <DragOverlay>
+          {/* 拖拽预览 - 使用 dropAnimation=null 防止位置偏移 */}
+          <DragOverlay dropAnimation={null}>
             {activeDragItem?.type === 'group' && (
-              <div className="px-3 py-2 bg-indigo-500/80 text-white rounded-lg shadow-lg">
-                {activeDragItem.name}
+              <div className="px-3 py-2 bg-indigo-500/80 text-white rounded-lg shadow-lg backdrop-blur-sm">
+                <div className="flex items-center gap-2">
+                  <GripVertical size={14} className="text-white/60" />
+                  {activeDragItem.name}
+                </div>
               </div>
             )}
             {activeDragItem?.type === 'site' && activeDragItem.site && (
-              <div className="w-32 h-20 bg-white/20 backdrop-blur-xl rounded-xl border border-white/30 shadow-lg flex flex-col items-center justify-center p-2">
-                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mb-1">
-                  {activeDragItem.site.icon ? (
-                    <img src={activeDragItem.site.icon} alt="" className="w-5 h-5 object-contain" />
-                  ) : (
-                    <span className="text-xs font-bold text-white/60">
-                      {activeDragItem.site.name?.[0]?.toUpperCase() || '?'}
-                    </span>
-                  )}
-                </div>
-                <span className="text-xs text-white truncate max-w-full">{activeDragItem.site.name}</span>
-              </div>
+              <DragOverlaySiteCard site={activeDragItem.site} />
             )}
           </DragOverlay>
         </DndContext>
       </div>
+    </div>
+  );
+}
+
+/**
+ * 拖动预览的网站卡片（带图标）
+ */
+function DragOverlaySiteCard({ site }) {
+  const [faviconIndex, setFaviconIndex] = useState(0);
+  const [imgError, setImgError] = useState(false);
+  const imgRef = useRef(null);
+
+  const domain = getDomainFromUrl(site.url || site.innerUrl || '');
+  const faviconUrl = domain && faviconIndex < FAVICON_SERVICES.length
+    ? FAVICON_SERVICES[faviconIndex](domain)
+    : '';
+
+  const handleImgError = () => {
+    if (faviconIndex < FAVICON_SERVICES.length - 1) {
+      setFaviconIndex(prev => prev + 1);
+    } else {
+      setImgError(true);
+    }
+  };
+
+  return (
+    <div className="w-32 bg-white/20 backdrop-blur-xl rounded-xl border border-white/30 shadow-lg flex flex-col items-center justify-center p-3">
+      <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mb-1">
+        {!imgError && faviconUrl ? (
+          <img
+            ref={imgRef}
+            src={faviconUrl}
+            alt=""
+            className="w-5 h-5 object-contain"
+            onError={handleImgError}
+          />
+        ) : (
+          <span className="text-xs font-bold text-white/60">
+            {site.name?.[0]?.toUpperCase() || '?'}
+          </span>
+        )}
+      </div>
+      <span className="text-xs text-white truncate max-w-full">{site.name}</span>
     </div>
   );
 }
@@ -488,7 +529,9 @@ function SortableGroupItem({
     <div
       ref={setRefs}
       style={style}
-      className={`group flex items-center gap-2 p-2 mb-1 rounded-lg cursor-pointer transition-all ${
+      {...attributes}
+      {...listeners}
+      className={`group flex items-center gap-2 p-2 mb-1 rounded-lg cursor-grab active:cursor-grabbing transition-all ${
         isSelected
           ? 'bg-indigo-500/30 border border-indigo-500/50'
           : isOver
@@ -497,12 +540,7 @@ function SortableGroupItem({
       }`}
       onClick={onSelect}
     >
-      <div
-        {...attributes}
-        {...listeners}
-        className="cursor-grab active:cursor-grabbing p-1 text-white/30 hover:text-white/60 transition"
-        onClick={e => e.stopPropagation()}
-      >
+      <div className="p-1 text-white/30 group-hover:text-white/60 transition">
         <GripVertical size={14} />
       </div>
       <span className="flex-1 text-sm text-white font-medium truncate">{group}</span>
@@ -510,14 +548,14 @@ function SortableGroupItem({
       <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
           onClick={e => { e.stopPropagation(); onStartEdit(); }}
-          className="p-1 hover:bg-white/10 rounded text-white/40 hover:text-blue-400 transition"
+          className="p-1 hover:bg-white/10 rounded text-white/40 hover:text-blue-400 transition cursor-pointer"
           title="重命名"
         >
           <Edit2 size={12} />
         </button>
         <button
           onClick={e => { e.stopPropagation(); onRemove(); }}
-          className="p-1 hover:bg-white/10 rounded text-white/40 hover:text-red-400 transition"
+          className="p-1 hover:bg-white/10 rounded text-white/40 hover:text-red-400 transition cursor-pointer"
           title="删除"
         >
           <Trash2 size={12} />
@@ -543,26 +581,91 @@ function DraggableSiteCard({ site, isSelected, onToggleSelect, onEdit }) {
     data: { type: 'site', site },
   });
 
+  // favicon 相关状态
+  const [faviconIndex, setFaviconIndex] = useState(0);
+  const [imgError, setImgError] = useState(false);
+  const [cachedUrl, setCachedUrl] = useState(null);
+  const imgRef = useRef(null);
+
+  const domain = getDomainFromUrl(site.url || site.innerUrl || '');
+
+  // 初始化时检查缓存
+  useEffect(() => {
+    setImgError(false);
+    setFaviconIndex(0);
+    setCachedUrl(null);
+    if (domain) {
+      const cached = getCachedFavicon(domain);
+      if (cached) {
+        setCachedUrl(cached);
+      }
+    }
+  }, [domain]);
+
+  // 优先用缓存，否则按服务列表获取
+  const faviconUrl = cachedUrl || (domain && faviconIndex < FAVICON_SERVICES.length
+    ? FAVICON_SERVICES[faviconIndex](domain)
+    : '');
+
+  // 图片加载成功时校验是否为有效图标
+  const handleImgLoad = () => {
+    const img = imgRef.current;
+    if (!img) return;
+
+    const { naturalWidth, naturalHeight } = img;
+    const isGoogleApi = faviconUrl.includes('google.com/s2/favicons');
+    const minValidSize = isGoogleApi ? 24 : 10;
+
+    if (naturalWidth < minValidSize || naturalHeight < minValidSize) {
+      handleImgError();
+      return;
+    }
+
+    // 图标有效，缓存 URL
+    if (!cachedUrl && domain && faviconUrl) {
+      setFaviconCache(domain, faviconUrl);
+      setCachedUrl(faviconUrl);
+    }
+  };
+
+  // 图片加载失败时尝试下一个服务
+  const handleImgError = () => {
+    if (faviconIndex < FAVICON_SERVICES.length - 1) {
+      setFaviconIndex(prev => prev + 1);
+    } else {
+      setImgError(true);
+    }
+  };
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
 
+  // 安全获取域名显示
+  let hostname = '';
+  try {
+    hostname = new URL(site.url).hostname.replace('www.', '');
+  } catch {
+    hostname = site.url || '';
+  }
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`group relative backdrop-blur-sm rounded-xl border transition-all cursor-pointer ${
+      {...attributes}
+      {...listeners}
+      className={`group relative backdrop-blur-sm rounded-xl border transition-all cursor-grab active:cursor-grabbing ${
         isSelected
           ? 'bg-indigo-500/20 border-indigo-500/50'
           : 'bg-white/5 border-white/10 hover:border-white/20 hover:bg-white/10'
       }`}
-      onClick={onEdit}
     >
       {/* 选择复选框 */}
       <div
-        className="absolute top-2 left-2 z-10"
+        className="absolute top-2 left-2 z-10 cursor-pointer"
         onClick={e => { e.stopPropagation(); onToggleSelect(); }}
       >
         <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
@@ -574,21 +677,26 @@ function DraggableSiteCard({ site, isSelected, onToggleSelect, onEdit }) {
         </div>
       </div>
 
-      {/* 拖拽手柄 */}
+      {/* 编辑按钮 */}
       <div
-        {...attributes}
-        {...listeners}
-        className="absolute top-2 right-2 z-10 p-1 rounded bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
-        onClick={e => e.stopPropagation()}
+        className="absolute top-2 right-2 z-10 p-1 rounded bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+        onClick={e => { e.stopPropagation(); onEdit(); }}
       >
-        <GripVertical size={12} className="text-white/60" />
+        <Edit2 size={12} className="text-white/60" />
       </div>
 
       {/* 卡片内容 */}
       <div className="p-3 pt-8 flex flex-col items-center">
         <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center mb-2">
-          {site.icon ? (
-            <img src={site.icon} alt="" className="w-6 h-6 object-contain" />
+          {!imgError && faviconUrl ? (
+            <img
+              ref={imgRef}
+              src={faviconUrl}
+              alt=""
+              className="w-6 h-6 object-contain"
+              onLoad={handleImgLoad}
+              onError={handleImgError}
+            />
           ) : (
             <span className="text-sm font-bold text-white/60">
               {site.name?.[0]?.toUpperCase() || '?'}
@@ -597,7 +705,7 @@ function DraggableSiteCard({ site, isSelected, onToggleSelect, onEdit }) {
         </div>
         <span className="text-xs text-white font-medium text-center truncate w-full">{site.name}</span>
         <span className="text-[10px] text-white/40 truncate w-full text-center mt-0.5">
-          {new URL(site.url).hostname.replace('www.', '')}
+          {hostname}
         </span>
       </div>
     </div>
