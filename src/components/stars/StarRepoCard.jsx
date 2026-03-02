@@ -172,7 +172,7 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo }) {
 
         {/* 下拉选择框（向下弹出） */}
         {showGroupDropdown && (
-          <div className="absolute left-0 top-full mt-1 z-50 bg-gray-800 border border-white/20 rounded-xl shadow-xl min-w-[160px] py-1 animate-fade-in">
+          <div className="absolute left-0 top-full mt-1 z-[100] bg-gray-800 border border-white/20 rounded-xl shadow-xl min-w-[160px] py-1 animate-fade-in">
             {/* 新建分组输入 */}
             <div className="px-2 py-1.5 border-b border-white/10">
               <div className="flex items-center gap-1">
