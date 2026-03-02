@@ -3,11 +3,39 @@ import { useState, useRef, useEffect } from 'react';
 import { Star, ExternalLink, Tag, Package, ChevronDown, Plus, Check, Pin } from 'lucide-react';
 import { formatStarsCount, formatDate, getLanguageColor } from '../../utils/starsHelpers';
 
+// 简单内存缓存，避免重复请求
+const releaseCache = {};
+
 export default function StarRepoCard({ repo, groups = [], onUpdateRepo }) {
   const [showGroupDropdown, setShowGroupDropdown] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [note, setNote] = useState(repo.note || '');
+  const [latestRelease, setLatestRelease] = useState(undefined); // undefined=未加载, null=无发行版, string=版本号
   const dropdownRef = useRef(null);
+
+  // 懒加载最新 Release
+  useEffect(() => {
+    if (!repo.fullName) return;
+    if (releaseCache[repo.fullName] !== undefined) {
+      setLatestRelease(releaseCache[repo.fullName]);
+      return;
+    }
+    fetch(`https://api.github.com/repos/${repo.fullName}/releases/latest`)
+      .then(res => {
+        if (res.status === 404) return null;
+        if (!res.ok) return null;
+        return res.json();
+      })
+      .then(data => {
+        const version = data?.tag_name || null;
+        releaseCache[repo.fullName] = version;
+        setLatestRelease(version);
+      })
+      .catch(() => {
+        releaseCache[repo.fullName] = null;
+        setLatestRelease(null);
+      });
+  }, [repo.fullName]);
 
   // 点击外部关闭下拉框
   useEffect(() => {
@@ -57,7 +85,7 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo }) {
   };
 
   return (
-    <div className="group relative bg-white/60 hover:bg-white/70 rounded-2xl transition-all duration-300 p-4 border border-white/20 hover:border-white/30">
+    <div className="group relative bg-white/30 hover:bg-white/40 backdrop-blur-md rounded-2xl transition-all duration-300 p-4 border border-white/20 hover:border-white/30">
       {/* 置顶按钮 */}
       <button
         onClick={handleTogglePin}
@@ -238,18 +266,30 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo }) {
         </div>
       )}
 
-      {/* Releases 链接（仅有 url 时显示） */}
+      {/* Releases */}
       {repo.url && (
         <div className="mt-3 pt-2 border-t border-white/10">
-          <a
-            href={`${repo.url}/releases`}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 text-[10px] text-white/40 hover:text-orange-400 transition"
-          >
-            <Package size={10} />
-            Releases
-          </a>
+          {latestRelease === undefined ? (
+            <span className="inline-flex items-center gap-1 text-[10px] text-white/30">
+              <Package size={10} />
+              加载中...
+            </span>
+          ) : latestRelease ? (
+            <a
+              href={`${repo.url}/releases/tag/${latestRelease}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-[10px] text-white/50 hover:text-orange-400 transition"
+            >
+              <Package size={10} />
+              {latestRelease}
+            </a>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-[10px] text-white/25">
+              <Package size={10} />
+              无发行版
+            </span>
+          )}
         </div>
       )}
     </div>
