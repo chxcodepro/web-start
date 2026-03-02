@@ -36,7 +36,7 @@ export default function GitHubStarsPage({
   lastSyncAt,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('stars');
+  const [sortBy, setSortBy] = useState('updated');
   const [filterLanguage, setFilterLanguage] = useState('all');
   const [viewMode, setViewMode] = useState('group'); // 'group' | 'list'
   const [collapsedGroups, setCollapsedGroups] = useState({});

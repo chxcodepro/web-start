@@ -147,10 +147,10 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo }) {
           {formatStarsCount(repo.stars)}
         </span>
 
-        {/* 更新时间 */}
-        {repo.updatedAt && (
+        {/* 代码更新时间 */}
+        {repo.pushedAt && (
           <span className="text-white/40">
-            {formatDate(repo.updatedAt)}
+            {formatDate(repo.pushedAt)}
           </span>
         )}
       </div>

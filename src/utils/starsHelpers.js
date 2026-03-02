@@ -135,7 +135,7 @@ export const sortRepos = (repos, sortBy = 'stars') => {
       sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
       break;
     case 'updated':
-      sorted.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+      sorted.sort((a, b) => new Date(b.pushedAt || 0) - new Date(a.pushedAt || 0));
       break;
     case 'language':
       sorted.sort((a, b) => (a.language || 'zzz').localeCompare(b.language || 'zzz'));
