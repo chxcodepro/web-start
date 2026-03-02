@@ -206,7 +206,7 @@ export default function GitHubStarsPage({
               <select
                 value={filterLanguage}
                 onChange={(e) => setFilterLanguage(e.target.value)}
-                className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none appearance-none cursor-pointer"
+                className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none appearance-none cursor-pointer [&>option]:bg-gray-800 [&>option]:text-white"
               >
                 <option value="all">所有语言</option>
                 {languages.map(lang => (
@@ -218,7 +218,7 @@ export default function GitHubStarsPage({
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none appearance-none cursor-pointer"
+                className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none appearance-none cursor-pointer [&>option]:bg-gray-800 [&>option]:text-white"
               >
                 <option value="stars">按 Stars</option>
                 <option value="name">按名称</option>

@@ -271,7 +271,6 @@ function SearchBox({
             {/* 搜索输入框 */}
             <input
               ref={searchInputRef}
-              autoFocus
               type="text"
               value={searchQuery}
               onClick={() => setIsSearchFocused(true)}

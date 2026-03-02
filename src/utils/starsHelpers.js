@@ -86,6 +86,11 @@ export const groupReposByCategory = (repos, groups) => {
     }
   });
 
+  // 置顶的排在分组前排
+  Object.keys(grouped).forEach(g => {
+    grouped[g].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+  });
+
   return grouped;
 };
 

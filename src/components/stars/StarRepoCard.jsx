@@ -1,6 +1,6 @@
 // GitHub 仓库卡片组件
 import { useState, useRef, useEffect } from 'react';
-import { Star, ExternalLink, Tag, Package, ChevronDown, Plus, Check, CheckCircle2 } from 'lucide-react';
+import { Star, ExternalLink, Tag, Package, ChevronDown, Plus, Check, Pin } from 'lucide-react';
 import { formatStarsCount, formatDate, getLanguageColor } from '../../utils/starsHelpers';
 
 export default function StarRepoCard({ repo, groups = [], onUpdateRepo }) {
@@ -51,27 +51,24 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo }) {
     }
   };
 
-  // 切换已读状态
-  const handleToggleRead = () => {
-    onUpdateRepo?.(repo.id, { isRead: !repo.isRead });
+  // 切换置顶状态
+  const handleTogglePin = () => {
+    onUpdateRepo?.(repo.id, { pinned: !repo.pinned });
   };
 
-  // Releases 链接
-  const releasesUrl = repo.url ? `${repo.url}/releases` : null;
-
   return (
-    <div className="group relative bg-white/20 hover:bg-white/30 rounded-2xl transition-all duration-300 p-4 border border-white/10 hover:border-white/20">
-      {/* 已读标记按钮 */}
+    <div className="group relative bg-white/60 hover:bg-white/70 rounded-2xl transition-all duration-300 p-4 border border-white/20 hover:border-white/30">
+      {/* 置顶按钮 */}
       <button
-        onClick={handleToggleRead}
+        onClick={handleTogglePin}
         className={`absolute top-2 right-2 p-1 rounded-full transition z-10 ${
-          repo.isRead
-            ? 'text-green-400 bg-green-500/20 hover:bg-green-500/30'
-            : 'text-white/30 hover:text-white/50 hover:bg-white/10'
+          repo.pinned
+            ? 'text-amber-400 bg-amber-500/20 hover:bg-amber-500/30'
+            : 'text-white/30 hover:text-white/60 hover:bg-white/20'
         }`}
-        title={repo.isRead ? '标记为未读' : '标记为已读'}
+        title={repo.pinned ? '取消置顶' : '置顶'}
       >
-        <CheckCircle2 size={16} />
+        <Pin size={14} className={repo.pinned ? 'fill-amber-400' : ''} />
       </button>
 
       {/* 仓库名称和链接 */}
@@ -137,7 +134,7 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo }) {
           className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-lg transition ${
             repo.group
               ? 'bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400'
-              : 'bg-white/10 hover:bg-white/15 text-white/50 hover:text-white/70 border border-dashed border-white/20'
+              : 'bg-white/10 hover:bg-white/20 text-white/50 hover:text-white/70 border border-dashed border-white/20'
           }`}
         >
           <Tag size={10} />
@@ -204,15 +201,21 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo }) {
         )}
       </div>
 
-      {/* 备注输入框 */}
+      {/* 备注输入框（自动换行） */}
       <div className="mt-2">
-        <input
-          type="text"
+        <textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
           onBlur={handleNoteBlur}
           placeholder="添加备注..."
-          className="w-full bg-transparent border-none text-xs text-white/60 placeholder-white/30 focus:outline-none focus:text-white/80 py-1"
+          rows={1}
+          className="w-full bg-transparent border-none resize-none text-xs text-white/60 placeholder-white/30 focus:outline-none focus:text-white/80 py-1 leading-relaxed"
+          style={{ minHeight: '1.5rem', overflow: 'hidden' }}
+          onInput={(e) => {
+            // 自动撑高
+            e.target.style.height = 'auto';
+            e.target.style.height = e.target.scrollHeight + 'px';
+          }}
         />
       </div>
 
@@ -235,11 +238,11 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo }) {
         </div>
       )}
 
-      {/* Releases 链接 */}
-      <div className="mt-3 pt-2 border-t border-white/10">
-        {releasesUrl ? (
+      {/* Releases 链接（仅有 url 时显示） */}
+      {repo.url && (
+        <div className="mt-3 pt-2 border-t border-white/10">
           <a
-            href={releasesUrl}
+            href={`${repo.url}/releases`}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-1 text-[10px] text-white/40 hover:text-orange-400 transition"
@@ -247,13 +250,8 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo }) {
             <Package size={10} />
             Releases
           </a>
-        ) : (
-          <span className="inline-flex items-center gap-1 text-[10px] text-white/20">
-            <Package size={10} />
-            无发行版
-          </span>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
