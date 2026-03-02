@@ -8,14 +8,9 @@ import {
   Search,
   ChevronDown,
   ChevronRight,
-  Filter,
   LayoutGrid,
   List,
-  Loader2,
   Github,
-  X,
-  Check,
-  Tag,
 } from 'lucide-react';
 import StarRepoCard from './StarRepoCard';
 import {
@@ -45,9 +40,6 @@ export default function GitHubStarsPage({
   const [filterLanguage, setFilterLanguage] = useState('all');
   const [viewMode, setViewMode] = useState('group'); // 'group' | 'list'
   const [collapsedGroups, setCollapsedGroups] = useState({});
-  const [showFilters, setShowFilters] = useState(false);
-  const [editingRepo, setEditingRepo] = useState(null);
-  const [editingGroup, setEditingGroup] = useState('');
 
   // 从 localStorage 恢复视图偏好
   useEffect(() => {
@@ -110,15 +102,6 @@ export default function GitHubStarsPage({
       ...prev,
       [groupName]: !prev[groupName],
     }));
-  };
-
-  // 保存仓库分组编辑
-  const handleSaveRepoGroup = () => {
-    if (editingRepo) {
-      onUpdateRepo?.(editingRepo.id, { group: editingGroup });
-      setEditingRepo(null);
-      setEditingGroup('');
-    }
   };
 
   // 检查是否已配置 GitHub
@@ -307,10 +290,8 @@ export default function GitHubStarsPage({
                           <StarRepoCard
                             key={repo.id}
                             repo={repo}
-                            onEditGroup={(r) => {
-                              setEditingRepo(r);
-                              setEditingGroup(r.group || '');
-                            }}
+                            groups={allGroups}
+                            onUpdateRepo={onUpdateRepo}
                           />
                         ))}
                       </div>
@@ -326,10 +307,8 @@ export default function GitHubStarsPage({
                 <StarRepoCard
                   key={repo.id}
                   repo={repo}
-                  onEditGroup={(r) => {
-                    setEditingRepo(r);
-                    setEditingGroup(r.group || '');
-                  }}
+                  groups={allGroups}
+                  onUpdateRepo={onUpdateRepo}
                 />
               ))}
             </div>
@@ -341,78 +320,6 @@ export default function GitHubStarsPage({
               上次同步: {new Date(lastSyncAt).toLocaleString('zh-CN')}
             </div>
           )}
-        </div>
-      )}
-
-      {/* 编辑分组弹窗 */}
-      {editingRepo && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setEditingRepo(null)} />
-          <div className="relative z-10 bg-gray-900 border border-white/10 rounded-2xl w-full max-w-sm p-5 shadow-2xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-white">编辑分组</h3>
-              <button onClick={() => setEditingRepo(null)} className="text-white/40 hover:text-white transition">
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="mb-4">
-              <p className="text-sm text-white/60 truncate mb-3">{editingRepo.fullName}</p>
-
-              {/* 分组输入 */}
-              <div className="relative">
-                <Tag size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
-                <input
-                  type="text"
-                  value={editingGroup}
-                  onChange={(e) => setEditingGroup(e.target.value)}
-                  placeholder="输入分组名称"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-white placeholder-white/40 focus:border-cyan-500 focus:outline-none text-sm"
-                  list="group-suggestions"
-                />
-                <datalist id="group-suggestions">
-                  {allGroups.map(g => (
-                    <option key={g} value={g} />
-                  ))}
-                </datalist>
-              </div>
-
-              {/* 快速选择现有分组 */}
-              {allGroups.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-1">
-                  {allGroups.slice(0, 8).map(g => (
-                    <button
-                      key={g}
-                      onClick={() => setEditingGroup(g)}
-                      className={`px-2 py-1 text-xs rounded-lg transition ${
-                        editingGroup === g
-                          ? 'bg-cyan-600 text-white'
-                          : 'bg-white/5 text-white/60 hover:bg-white/10'
-                      }`}
-                    >
-                      {g}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => setEditingRepo(null)}
-                className="flex-1 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition"
-              >
-                取消
-              </button>
-              <button
-                onClick={handleSaveRepoGroup}
-                className="flex-1 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium transition flex items-center justify-center gap-1"
-              >
-                <Check size={14} />
-                保存
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>
