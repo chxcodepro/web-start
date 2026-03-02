@@ -85,7 +85,7 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo }) {
   };
 
   return (
-    <div className="group relative bg-white/5 hover:bg-white/10 backdrop-blur-md rounded-2xl transition-all duration-300 p-4 border border-white/20 hover:border-white/30">
+    <div className={`group relative bg-white/5 hover:bg-white/10 backdrop-blur-md rounded-2xl transition-all duration-300 p-4 border border-white/20 hover:border-white/30 ${showGroupDropdown ? 'z-[60]' : ''}`}>
       {/* 置顶按钮 */}
       <button
         onClick={handleTogglePin}
