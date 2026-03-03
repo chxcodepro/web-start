@@ -19,12 +19,9 @@
 
 ## 页面预览
 
-<p align="center">
-  <img src="https://pic.9989.us/20260130101605812.png" alt="PC 端界面" width="45%" />
-  <img src="https://pic.9989.us/20260130101605814.png" alt="移动端适配" width="45%" />
-  <img src="https://pic.9989.us/20260130101605815.png" alt="可视化编辑" width="45%" />
-  <img src="https://pic.9989.us/20260130101605816.png" alt="管理员登录" width="45%" />
-</p>
+![image-20260303172515706](https://38cf9b9.webp.li/file/1772529938377_6969df088c8c4f56b8f50a6269fdb3f4.png)
+
+![image-20260303172526569](https://38cf9b9.webp.li/file/1772529940596_285942540e554d1a87fe5e3ef7826fdf.png)
 
 ## 功能特性
 
@@ -71,28 +68,22 @@
 
 ## 快速部署
 
-最简单的方式是 Fork 本项目后部署到 Vercel：
-
 ### 1. Fork 项目
 
 点击本仓库右上角的 **Fork** 按钮，将项目复制到你的 GitHub 账号下。
 
 ### 2. 配置 Firebase
 
-1. 访问 [Firebase 控制台](https://console.firebase.google.com/) 创建项目
+1. 访问 [Firebase 控制台](https://console.firebase.google.com/)
 
 2. **开启 Firestore Database**
-   - 进入 Build → Firestore Database
-   - 创建数据库，选择区域
-   - 测试阶段可使用测试模式
-
-3. **开启 Authentication**
-   - 进入 Build → Authentication
-   - 启用 Google 登录方式
+   
+   - 输入项目名称 → 选择地区 → 创建项目
+   - 构建 → `Firestore Database` → 创建项目
 
 4. **获取配置信息**
-   - 进入项目设置 → 常规 → 您的应用
-   - 点击 Web 图标创建 Web 应用
+   
+   - 项目概述 → 添加应用 → 选择web(网站) → 创建项目
    - 复制 `firebaseConfig` 配置
 
 5. **修改配置文件**
@@ -111,19 +102,11 @@
    };
    ```
 
-### 3. 部署到 Vercel
-
-1. 访问 [Vercel](https://vercel.com/)，使用 GitHub 账号登录
-
-2. 点击 **New Project**，导入你 Fork 的仓库
-
-3. 直接点击 **Deploy** 开始部署
-
-4. **重要**：部署完成后，在 Firebase Authentication 的「已获授权域名」中添加你的 Vercel 域名
-
-### 4. 配置 Firestore 安全规则
+### 3. 配置 Firestore 安全规则
 
 建议将写权限限制为管理员账号：
+
+`Firestore Database` → 规则
 
 ```js
 rules_version = '2';
@@ -137,6 +120,13 @@ service cloud.firestore {
   }
 }
 ```
+
+### 4. 部署到 Vercel
+
+1. 访问 [Vercel](https://vercel.com/)，使用 GitHub 账号登录
+2. 点击 **New Project**，导入你 Fork 的仓库
+3. 直接点击 **Deploy** 开始部署
+4. **重要**：部署完成后，在 Firebase Authentication 的「已获授权域名」中添加你的 Vercel 域名
 
 ---
 
