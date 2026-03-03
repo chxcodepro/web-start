@@ -1,4 +1,4 @@
-## 0.1.2 (2026-03-03)
+## 0.1.3 (2026-03-03)
 
 
 ### Bug Fixes
@@ -22,6 +22,7 @@
 * 将默认排序方式改为按更新时间并更新相关字段 ([ac9f216](https://github.com/chxcodepro/web-start/commit/ac9f216c965795091a8ac98d9fe75dbec151c243))
 * 全站移动端适配优化 ([c5929f7](https://github.com/chxcodepro/web-start/commit/c5929f7dc3a6f6a9a5d03d50c61a626f8af1a6d6))
 * 使用 createPortal 优化拖拽预览并回滚版本号 ([87c6616](https://github.com/chxcodepro/web-start/commit/87c66165735eec3cad69743081a86739a1022341))
+* 搜索优先匹配已收藏网站 + 综合管理批量移动分组 ([4dd0566](https://github.com/chxcodepro/web-start/commit/4dd0566cb139ccfe883a05f90ca36d7803493ab3))
 * 替换alert为toast提示并优化搜索引擎选择器 ([0654526](https://github.com/chxcodepro/web-start/commit/06545266ab50613ccb111f87f6ba24242f288ad9))
 * 添加版本标签并更新模态框样式 ([cf61104](https://github.com/chxcodepro/web-start/commit/cf61104d4b12735938e99775fde250a3015dbd04))
 * 添加分组折叠功能并优化动画效果 ([9e9e740](https://github.com/chxcodepro/web-start/commit/9e9e7400aa02b8961ac374b4066ff9ad8fb4221b))
@@ -31,6 +32,7 @@
 * 添加搜索引擎切换功能并优化书签导入流程 ([dd0ed90](https://github.com/chxcodepro/web-start/commit/dd0ed9057f997874c0179abebbd103cc79b90bff))
 * 添加站点拖拽排序功能并优化UI设计 ([24698fb](https://github.com/chxcodepro/web-start/commit/24698fbee02a4482a43f9177cde6d9df5c80e113))
 * 添加重置分组功能，支持清空所有仓库分组以便重新 AI 分析 ([4ff9243](https://github.com/chxcodepro/web-start/commit/4ff9243eb8f4b176f7e4723f67d52769a92cce3d))
+* 添加自动生成 CHANGELOG 脚本 ([f94ecde](https://github.com/chxcodepro/web-start/commit/f94ecde0e836474f458fe60af1bcc435739f269a))
 * 为分组管理添加重命名和排序功能 ([89dd355](https://github.com/chxcodepro/web-start/commit/89dd3552e55aea3acf5ec9a189c17763911d566e))
 * 为站点卡片添加图标缓存功能 ([4e6274e](https://github.com/chxcodepro/web-start/commit/4e6274ef0f6d70731cf7cfe2b0e6687b7e77fe5e))
 * 为站点卡片添加图标缓存功能 ([8636d37](https://github.com/chxcodepro/web-start/commit/8636d37121a2e52fe1b1bc1cba245263bf597d81))
