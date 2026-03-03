@@ -154,8 +154,8 @@ ${JSON.stringify(repoList, null, 2)}
   }
 };
 
-// 解析 AI 返回的 JSON
-const parseAIResponse = (text) => {
+// 解析并校验 AI 返回的 JSON
+const parseAIResponse = (text, validRepoIds) => {
   // 移除可能的 markdown 代码块标记
   let cleaned = text.trim();
   if (cleaned.startsWith('```json')) {
@@ -168,11 +168,53 @@ const parseAIResponse = (text) => {
   }
   cleaned = cleaned.trim();
 
+  // 尝试提取 JSON（处理 AI 返回多余文字的情况）
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    cleaned = jsonMatch[0];
+  }
+
+  let parsed;
   try {
-    return JSON.parse(cleaned);
+    parsed = JSON.parse(cleaned);
   } catch (e) {
     throw new Error('AI 返回格式无效，无法解析 JSON');
   }
+
+  // 校验 groups 字段
+  if (!parsed.groups || !Array.isArray(parsed.groups)) {
+    parsed.groups = [];
+  }
+  // 过滤非字符串分组名
+  parsed.groups = parsed.groups.filter(g => typeof g === 'string' && g.trim());
+
+  // 校验 assignments 字段
+  if (!parsed.assignments || typeof parsed.assignments !== 'object') {
+    parsed.assignments = {};
+  }
+
+  // 校验并清理 assignments
+  const validIdSet = new Set(validRepoIds.map(id => String(id)));
+  const cleanedAssignments = {};
+
+  for (const [repoId, groupName] of Object.entries(parsed.assignments)) {
+    // ID 转字符串比对
+    const idStr = String(repoId);
+    if (!validIdSet.has(idStr)) continue; // 过滤无效 ID
+    if (typeof groupName !== 'string' || !groupName.trim()) continue; // 过滤无效分组名
+
+    // 转回原始 ID 类型（数字或字符串）
+    const originalId = validRepoIds.find(id => String(id) === idStr);
+    cleanedAssignments[originalId] = groupName.trim();
+
+    // 确保分组名在 groups 列表中
+    if (!parsed.groups.includes(groupName.trim())) {
+      parsed.groups.push(groupName.trim());
+    }
+  }
+
+  parsed.assignments = cleanedAssignments;
+  return parsed;
 };
 
 // 调用 AI 接口
@@ -242,7 +284,8 @@ const analyzeReposInBatches = async (repos, provider, apiKey, customEndpoint, cu
       concurrentBatches.map(async (batch) => {
         const prompt = buildGroupingPrompt(batch, presetGroups, usePresetOnly);
         const response = await callAI(provider, apiKey, prompt, customEndpoint, customModel);
-        return parseAIResponse(response);
+        const validIds = batch.map(r => r.id);
+        return parseAIResponse(response, validIds);
       })
     );
 
