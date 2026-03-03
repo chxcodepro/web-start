@@ -83,6 +83,7 @@ export default function App() {
     handleSyncStars,
     handleAIAnalyze,
     handleUpdateStarsRepo,
+    handleRenameStarsGroup,
     handleResetGroups,
   } = stars;
 
@@ -211,11 +212,13 @@ export default function App() {
             repos={starsRepos}
             groups={starsGroups}
             config={starsConfig}
+            user={user}
             onBack={() => setShowStarsPage(false)}
             onSync={handleSyncStars}
             onAIAnalyze={handleAIAnalyze}
             onOpenSettings={() => setIsStarsSettingsOpen(true)}
             onUpdateRepo={handleUpdateStarsRepo}
+            onRenameGroup={handleRenameStarsGroup}
             syncing={starsSyncing}
             analyzing={starsAnalyzing}
             lastSyncAt={starsLastSyncAt}

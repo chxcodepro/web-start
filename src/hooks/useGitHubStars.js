@@ -336,6 +336,37 @@ export function useGitHubStars({ user, getApiAuthHeaders, showToast }) {
     }
   };
 
+  // 重命名分组
+  const handleRenameStarsGroup = async (oldName, newName) => {
+    const trimmedNew = newName.trim();
+    if (!trimmedNew || trimmedNew === oldName) return false;
+    if (starsGroups.includes(trimmedNew)) {
+      showToast('分组名称已存在', 'error');
+      return false;
+    }
+
+    const updatedRepos = starsRepos.map(r =>
+      r.group === oldName ? { ...r, group: trimmedNew } : r
+    );
+    const newGroups = starsGroups.map(g => g === oldName ? trimmedNew : g);
+
+    setStarsRepos(updatedRepos);
+    setStarsGroups(newGroups);
+
+    try {
+      await saveStarsToCloud({
+        repos: updatedRepos,
+        groups: newGroups,
+      });
+      showToast('分组已重命名', 'success');
+      return true;
+    } catch (error) {
+      console.error('重命名分组失败:', error);
+      showToast('重命名失败', 'error');
+      return false;
+    }
+  };
+
   // 重置所有分组
   const handleResetGroups = async () => {
     if (starsRepos.length === 0) {
@@ -378,6 +409,7 @@ export function useGitHubStars({ user, getApiAuthHeaders, showToast }) {
     handleSyncStars,
     handleAIAnalyze,
     handleUpdateStarsRepo,
+    handleRenameStarsGroup,
     handleResetGroups,
   };
 }

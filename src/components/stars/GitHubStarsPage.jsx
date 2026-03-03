@@ -11,6 +11,9 @@ import {
   LayoutGrid,
   List,
   Github,
+  Edit2,
+  Check,
+  X,
 } from 'lucide-react';
 import StarRepoCard from './StarRepoCard';
 import {
@@ -26,11 +29,13 @@ export default function GitHubStarsPage({
   repos,
   groups,
   config,
+  user,
   onBack,
   onSync,
   onAIAnalyze,
   onOpenSettings,
   onUpdateRepo,
+  onRenameGroup,
   syncing,
   analyzing,
   lastSyncAt,
@@ -40,6 +45,8 @@ export default function GitHubStarsPage({
   const [filterLanguage, setFilterLanguage] = useState('all');
   const [viewMode, setViewMode] = useState('group'); // 'group' | 'list'
   const [collapsedGroups, setCollapsedGroups] = useState({});
+  const [editingGroup, setEditingGroup] = useState('');
+  const [editingName, setEditingName] = useState('');
 
   // 从 localStorage 恢复视图偏好
   useEffect(() => {
@@ -104,6 +111,29 @@ export default function GitHubStarsPage({
     }));
   };
 
+  // 开始编辑分组名称
+  const startEditGroup = (groupName, e) => {
+    e.stopPropagation();
+    setEditingGroup(groupName);
+    setEditingName(groupName);
+  };
+
+  // 保存分组名称
+  const handleSaveGroupName = async () => {
+    if (!editingName.trim()) return;
+    const success = await onRenameGroup?.(editingGroup, editingName);
+    if (success) {
+      setEditingGroup('');
+      setEditingName('');
+    }
+  };
+
+  // 取消编辑
+  const cancelEditGroup = () => {
+    setEditingGroup('');
+    setEditingName('');
+  };
+
   // 检查是否已配置 GitHub
   const isGitHubConfigured = config?.github?.accessToken;
 
@@ -132,38 +162,40 @@ export default function GitHubStarsPage({
               </div>
             </div>
 
-            {/* 右侧：操作按钮 */}
-            <div className="flex items-center gap-1.5 md:gap-2">
-              {/* 同步按钮 */}
-              <button
-                onClick={onSync}
-                disabled={syncing || !isGitHubConfigured}
-                className="px-2 md:px-3 py-2 bg-white/10 hover:bg-white/20 disabled:opacity-50 rounded-xl text-sm text-white font-medium transition flex items-center gap-1.5 md:gap-2"
-              >
-                <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
-                <span className="hidden sm:inline">{syncing ? '同步中...' : '同步'}</span>
-              </button>
+            {/* 右侧：操作按钮（仅登录后显示） */}
+            {user && (
+              <div className="flex items-center gap-1.5 md:gap-2">
+                {/* 同步按钮 */}
+                <button
+                  onClick={onSync}
+                  disabled={syncing || !isGitHubConfigured}
+                  className="px-2 md:px-3 py-2 bg-white/10 hover:bg-white/20 disabled:opacity-50 rounded-xl text-sm text-white font-medium transition flex items-center gap-1.5 md:gap-2"
+                >
+                  <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
+                  <span className="hidden sm:inline">{syncing ? '同步中...' : '同步'}</span>
+                </button>
 
-              {/* AI 分组按钮 */}
-              <button
-                onClick={onAIAnalyze}
-                disabled={analyzing || stats.ungrouped === 0 || !config?.aiConfig?.apiKey}
-                className="px-2 md:px-3 py-2 bg-purple-600/80 hover:bg-purple-500 disabled:opacity-50 rounded-xl text-sm text-white font-medium transition flex items-center gap-1.5 md:gap-2"
-              >
-                <Sparkles size={14} className={analyzing ? 'animate-pulse' : ''} />
-                <span className="hidden sm:inline">{analyzing ? '分析中...' : 'AI 分组'}</span>
-                <span className="sm:hidden">{stats.ungrouped}</span>
-                <span className="hidden sm:inline">({stats.ungrouped})</span>
-              </button>
+                {/* AI 分组按钮 */}
+                <button
+                  onClick={onAIAnalyze}
+                  disabled={analyzing || stats.ungrouped === 0 || !config?.aiConfig?.apiKey}
+                  className="px-2 md:px-3 py-2 bg-purple-600/80 hover:bg-purple-500 disabled:opacity-50 rounded-xl text-sm text-white font-medium transition flex items-center gap-1.5 md:gap-2"
+                >
+                  <Sparkles size={14} className={analyzing ? 'animate-pulse' : ''} />
+                  <span className="hidden sm:inline">{analyzing ? '分析中...' : 'AI 分组'}</span>
+                  <span className="sm:hidden">{stats.ungrouped}</span>
+                  <span className="hidden sm:inline">({stats.ungrouped})</span>
+                </button>
 
-              {/* 设置按钮 */}
-              <button
-                onClick={onOpenSettings}
-                className="p-2 hover:bg-white/10 rounded-lg text-white/70 hover:text-white transition"
-              >
-                <Settings size={18} />
-              </button>
-            </div>
+                {/* 设置按钮 */}
+                <button
+                  onClick={onOpenSettings}
+                  className="p-2 hover:bg-white/10 rounded-lg text-white/70 hover:text-white transition"
+                >
+                  <Settings size={18} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -266,24 +298,61 @@ export default function GitHubStarsPage({
                 const isCollapsed = collapsedGroups[groupName];
 
                 return (
-                  <div key={groupName} className="animate-fade-in">
+                  <div key={groupName} className="animate-fade-in group/title">
                     {/* 分组标题 */}
-                    <button
-                      onClick={() => toggleGroupCollapse(groupName)}
-                      className="w-full flex items-center justify-between mb-3 pb-2 border-b border-white/10 hover:border-white/20 transition"
-                    >
-                      <div className="flex items-center gap-2">
-                        {isCollapsed ? (
-                          <ChevronRight size={16} className="text-white/50" />
-                        ) : (
-                          <ChevronDown size={16} className="text-white/50" />
-                        )}
-                        <h3 className="text-lg font-bold text-white/90">{groupName}</h3>
-                        <span className="text-xs text-white/40 bg-white/5 px-2 py-0.5 rounded-full">
-                          {groupRepos.length}
-                        </span>
-                      </div>
-                    </button>
+                    <div className="flex items-center justify-between mb-3 pb-2 border-b border-white/10">
+                      {editingGroup === groupName ? (
+                        <div className="flex items-center gap-2 flex-1">
+                          <input
+                            type="text"
+                            value={editingName}
+                            onChange={(e) => setEditingName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveGroupName();
+                              if (e.key === 'Escape') cancelEditGroup();
+                            }}
+                            autoFocus
+                            className="flex-1 max-w-xs bg-white/10 border border-cyan-500 rounded-lg px-3 py-1.5 text-white text-lg font-bold focus:outline-none"
+                          />
+                          <button
+                            onClick={handleSaveGroupName}
+                            className="p-1.5 hover:bg-green-500/20 rounded-lg text-green-400 transition"
+                          >
+                            <Check size={16} />
+                          </button>
+                          <button
+                            onClick={cancelEditGroup}
+                            className="p-1.5 hover:bg-red-500/20 rounded-lg text-red-400 transition"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => toggleGroupCollapse(groupName)}
+                          className="flex items-center gap-2 hover:opacity-80 transition"
+                        >
+                          {isCollapsed ? (
+                            <ChevronRight size={16} className="text-white/50" />
+                          ) : (
+                            <ChevronDown size={16} className="text-white/50" />
+                          )}
+                          <h3 className="text-lg font-bold text-white/90">{groupName}</h3>
+                          <span className="text-xs text-white/40 bg-white/5 px-2 py-0.5 rounded-full">
+                            {groupRepos.length}
+                          </span>
+                        </button>
+                      )}
+                      {editingGroup !== groupName && groupName !== '未分组' && (
+                        <button
+                          onClick={(e) => startEditGroup(groupName, e)}
+                          className="p-1.5 hover:bg-white/10 rounded-lg text-white/40 hover:text-white/70 transition opacity-0 group-hover/title:opacity-100"
+                          title="编辑分组名称"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                      )}
+                    </div>
 
                     {/* 仓库网格 */}
                     {!isCollapsed && (
