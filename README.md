@@ -328,7 +328,7 @@ web-start/
 
 ## 更新日志
 
-查看 [CHANGELOG](./CHANGELOG.md) 了解版本更新历史。
+查看 [CHANGELOG](./public/CHANGELOG.md) 了解版本更新历史。
 
 ---
 
