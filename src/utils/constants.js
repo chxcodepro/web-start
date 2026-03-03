@@ -107,5 +107,7 @@ export const DEFAULT_STARS_CONFIG = {
     apiKey: '',
     customEndpoint: '',
     customModel: '',
+    presetGroups: [], // 预设分组列表
+    usePresetOnly: false, // 是否仅使用预设分组
   },
 };

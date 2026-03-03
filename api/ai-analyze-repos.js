@@ -70,7 +70,7 @@ const AI_CONFIGS = {
 };
 
 // 构建分组分析的 prompt
-const buildGroupingPrompt = (repos) => {
+const buildGroupingPrompt = (repos, presetGroups = [], usePresetOnly = false) => {
   const repoList = repos.map(r => ({
     id: r.id,
     name: r.fullName || r.name,
@@ -79,7 +79,59 @@ const buildGroupingPrompt = (repos) => {
     topics: r.topics || [],
   }));
 
-  return `你是一个 GitHub 仓库分类专家。请分析以下仓库列表，并为每个仓库分配一个合适的分组。
+  // 根据是否有预设分组，生成不同的 prompt
+  if (presetGroups.length > 0 && usePresetOnly) {
+    // 仅使用预设分组模式
+    return `你是一个 GitHub 仓库分类专家。请分析以下仓库列表，并将每个仓库分配到指定的分组中。
+
+预设分组列表：
+${presetGroups.map(g => `- ${g}`).join('\n')}
+
+要求：
+1. 只能使用上述预设分组，不能创建新分组
+2. 每个仓库只能属于一个分组
+3. 如果某个仓库确实无法归类到任何预设分组，请将其分配到"其他"分组
+4. 只返回 JSON 格式，不要有其他说明文字
+
+仓库列表：
+${JSON.stringify(repoList, null, 2)}
+
+请返回如下 JSON 格式（不要添加 markdown 代码块标记）：
+{
+  "groups": ["分组1", "分组2", ...],
+  "assignments": {
+    "仓库ID": "分组名称",
+    ...
+  }
+}`;
+  } else if (presetGroups.length > 0) {
+    // 优先使用预设分组，但允许创建新分组
+    return `你是一个 GitHub 仓库分类专家。请分析以下仓库列表，并为每个仓库分配一个合适的分组。
+
+已有分组（优先使用）：
+${presetGroups.map(g => `- ${g}`).join('\n')}
+
+要求：
+1. 优先使用上述已有分组
+2. 如果仓库确实不适合任何已有分组，可以创建新分组
+3. 新分组名称应该简洁、直观，使用中文
+4. 每个仓库只能属于一个分组
+5. 只返回 JSON 格式，不要有其他说明文字
+
+仓库列表：
+${JSON.stringify(repoList, null, 2)}
+
+请返回如下 JSON 格式（不要添加 markdown 代码块标记）：
+{
+  "groups": ["分组1", "分组2", ...],
+  "assignments": {
+    "仓库ID": "分组名称",
+    ...
+  }
+}`;
+  } else {
+    // 无预设分组，AI 自由分组
+    return `你是一个 GitHub 仓库分类专家。请分析以下仓库列表，并为每个仓库分配一个合适的分组。
 
 要求：
 1. 分组名称应该简洁、直观，使用中文
@@ -99,6 +151,7 @@ ${JSON.stringify(repoList, null, 2)}
     ...
   }
 }`;
+  }
 };
 
 // 解析 AI 返回的 JSON
@@ -171,7 +224,7 @@ const callAI = async (provider, apiKey, prompt, customEndpoint, customModel) => 
 const BATCH_SIZE = 30;
 const CONCURRENT_LIMIT = 2;
 
-const analyzeReposInBatches = async (repos, provider, apiKey, customEndpoint, customModel) => {
+const analyzeReposInBatches = async (repos, provider, apiKey, customEndpoint, customModel, presetGroups, usePresetOnly) => {
   // 分批
   const batches = [];
   for (let i = 0; i < repos.length; i += BATCH_SIZE) {
@@ -187,7 +240,7 @@ const analyzeReposInBatches = async (repos, provider, apiKey, customEndpoint, cu
     // 使用 allSettled 防止单个失败导致全部丢失
     const results = await Promise.allSettled(
       concurrentBatches.map(async (batch) => {
-        const prompt = buildGroupingPrompt(batch);
+        const prompt = buildGroupingPrompt(batch, presetGroups, usePresetOnly);
         const response = await callAI(provider, apiKey, prompt, customEndpoint, customModel);
         return parseAIResponse(response);
       })
@@ -232,7 +285,7 @@ export default async function handler(req, res) {
     }
 
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
-    const { repos, provider, apiKey, customEndpoint, customModel } = body;
+    const { repos, provider, apiKey, customEndpoint, customModel, presetGroups, usePresetOnly } = body;
 
     if (!repos || !Array.isArray(repos) || repos.length === 0) {
       return res.status(400).json({ error: '缺少仓库数据' });
@@ -260,7 +313,9 @@ export default async function handler(req, res) {
       provider,
       apiKey,
       customEndpoint,
-      customModel
+      customModel,
+      presetGroups || [],
+      usePresetOnly || false
     );
 
     return res.status(200).json({

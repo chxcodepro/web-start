@@ -1,6 +1,6 @@
 // GitHub Stars 设置弹窗组件
 import { useState, useEffect } from 'react';
-import { X, Github, Sparkles, Key, ExternalLink, Check, Loader2, Eye, EyeOff } from 'lucide-react';
+import { X, Github, Sparkles, Key, ExternalLink, Check, Loader2, Eye, EyeOff, Plus } from 'lucide-react';
 import { AI_PROVIDERS, DEFAULT_STARS_CONFIG } from '../../utils/constants';
 
 export default function GitHubStarsSettingsModal({
@@ -17,6 +17,7 @@ export default function GitHubStarsSettingsModal({
   const [showApiKey, setShowApiKey] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
+  const [newGroupName, setNewGroupName] = useState(''); // 新增分组输入
 
   useEffect(() => {
     if (initialConfig) {
@@ -372,6 +373,117 @@ export default function GitHubStarsSettingsModal({
                   </div>
                 </>
               )}
+
+              {/* 预设分组管理 */}
+              <div className="border-t border-white/10 pt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-xs text-white/50 font-medium ml-1">预设分组</label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <span className="text-xs text-white/50">仅使用预设分组</span>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({
+                        ...prev,
+                        aiConfig: { ...prev.aiConfig, usePresetOnly: !prev.aiConfig.usePresetOnly }
+                      }))}
+                      className={`relative w-10 h-5 rounded-full transition-colors ${
+                        formData.aiConfig.usePresetOnly ? 'bg-purple-600' : 'bg-white/20'
+                      }`}
+                    >
+                      <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
+                        formData.aiConfig.usePresetOnly ? 'translate-x-5' : ''
+                      }`} />
+                    </button>
+                  </label>
+                </div>
+
+                {/* 添加新分组 */}
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="text"
+                    value={newGroupName}
+                    onChange={(e) => setNewGroupName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && newGroupName.trim()) {
+                        e.preventDefault();
+                        const trimmed = newGroupName.trim();
+                        if (!formData.aiConfig.presetGroups?.includes(trimmed)) {
+                          setFormData(prev => ({
+                            ...prev,
+                            aiConfig: {
+                              ...prev.aiConfig,
+                              presetGroups: [...(prev.aiConfig.presetGroups || []), trimmed]
+                            }
+                          }));
+                        }
+                        setNewGroupName('');
+                      }
+                    }}
+                    placeholder="输入分组名称，回车添加"
+                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white focus:border-purple-500 focus:bg-white/10 focus:outline-none text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const trimmed = newGroupName.trim();
+                      if (trimmed && !formData.aiConfig.presetGroups?.includes(trimmed)) {
+                        setFormData(prev => ({
+                          ...prev,
+                          aiConfig: {
+                            ...prev.aiConfig,
+                            presetGroups: [...(prev.aiConfig.presetGroups || []), trimmed]
+                          }
+                        }));
+                        setNewGroupName('');
+                      }
+                    }}
+                    disabled={!newGroupName.trim()}
+                    className="px-3 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-white transition"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+
+                {/* 分组列表 */}
+                {formData.aiConfig.presetGroups?.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {formData.aiConfig.presetGroups.map((group, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 rounded-lg text-sm text-white/80"
+                      >
+                        <span>{group}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              aiConfig: {
+                                ...prev.aiConfig,
+                                presetGroups: prev.aiConfig.presetGroups.filter((_, i) => i !== index)
+                              }
+                            }));
+                          }}
+                          className="text-white/40 hover:text-red-400 transition"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-white/30 text-center py-2">
+                    暂无预设分组，AI 将自动创建分组
+                  </p>
+                )}
+
+                {/* 提示说明 */}
+                <p className="text-[11px] text-white/40 mt-3 ml-1">
+                  {formData.aiConfig.usePresetOnly
+                    ? '开启后，AI 只会使用预设分组，无法匹配的仓库将标记为"其他"'
+                    : '关闭时，AI 会优先使用预设分组，必要时创建新分组'}
+                </p>
+              </div>
 
               {/* AI 配置说明 */}
               <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl">

@@ -23,13 +23,14 @@ export function useGitHubStars({ user, getApiAuthHeaders, showToast }) {
   const [starsSyncing, setStarsSyncing] = useState(false);
   const [starsAnalyzing, setStarsAnalyzing] = useState(false);
   const [starsLastSyncAt, setStarsLastSyncAt] = useState(null);
+  const [starsLoaded, setStarsLoaded] = useState(false); // 云端数据是否已加载
   const [isStarsSettingsOpen, setIsStarsSettingsOpen] = useState(false);
 
-  // 保存到云端
+  // 保存到云端（固定路径，所有人共享）
   const saveStarsToCloud = useCallback(async (updates) => {
-    if (!user) return;
+    if (!user) return; // 未登录不允许保存
     try {
-      await setDoc(doc(db, 'github_stars', user.uid), updates, { merge: true });
+      await setDoc(doc(db, 'github_stars', 'main'), updates, { merge: true });
     } catch (error) {
       console.error('保存 Stars 数据失败:', error);
       throw error;
@@ -110,12 +111,10 @@ export function useGitHubStars({ user, getApiAuthHeaders, showToast }) {
     handleOAuthCallback();
   }, [showToast, saveStarsToCloud, user]);
 
-  // GitHub Stars 数据监听
+  // GitHub Stars 数据监听（固定路径，无需登录即可读取）
   useEffect(() => {
-    if (!user) return;
-
     const unsubscribe = onSnapshot(
-      doc(db, 'github_stars', user.uid),
+      doc(db, 'github_stars', 'main'),
       (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
@@ -131,14 +130,17 @@ export function useGitHubStars({ user, getApiAuthHeaders, showToast }) {
           if (data.groups) setStarsGroups(data.groups);
           if (data.lastSyncAt) setStarsLastSyncAt(data.lastSyncAt.toDate?.() || data.lastSyncAt);
         }
+        // 无论文档是否存在，都标记为已加载完成
+        setStarsLoaded(true);
       },
       (error) => {
         console.error('Stars 数据监听错误:', error);
+        setStarsLoaded(true); // 出错也标记为已加载，避免永久阻塞
       }
     );
 
     return () => unsubscribe();
-  }, [user]);
+  }, []);
 
   // 保存 Stars 功能开关
   useEffect(() => {
@@ -214,6 +216,12 @@ export function useGitHubStars({ user, getApiAuthHeaders, showToast }) {
       return;
     }
 
+    // 防止云端数据未加载完成时同步，避免覆盖已有分组
+    if (!starsLoaded) {
+      showToast('数据加载中，请稍后再试', 'error');
+      return;
+    }
+
     setStarsSyncing(true);
     try {
       const headers = await getApiAuthHeaders();
@@ -276,6 +284,8 @@ export function useGitHubStars({ user, getApiAuthHeaders, showToast }) {
           apiKey: starsConfig.aiConfig.apiKey,
           customEndpoint: starsConfig.aiConfig.customEndpoint,
           customModel: starsConfig.aiConfig.customModel,
+          presetGroups: starsConfig.aiConfig.presetGroups || [],
+          usePresetOnly: starsConfig.aiConfig.usePresetOnly || false,
         }),
       });
 
@@ -337,6 +347,7 @@ export function useGitHubStars({ user, getApiAuthHeaders, showToast }) {
     starsSyncing,
     starsAnalyzing,
     starsLastSyncAt,
+    starsLoaded,
     isStarsSettingsOpen,
     setIsStarsSettingsOpen,
     handleTestGitHubToken,
