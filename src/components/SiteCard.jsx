@@ -91,34 +91,34 @@ export function SiteCard({ site, isAdmin, onEdit, onDelete, className = "", isBa
   };
 
   return (
-    <div className={`group relative h-20 md:h-20 hover:bg-white/10 rounded-2xl transition-all duration-300 flex items-center px-3 overflow-hidden w-full card-hover ${isDragging ? 'opacity-50 scale-105 shadow-2xl bg-white/20' : ''} ${className}`}>
+    <div className={`group relative h-16 md:h-20 hover:bg-white/10 rounded-2xl transition-all duration-300 flex items-center px-2 md:px-3 overflow-hidden w-full card-hover ${isDragging ? 'opacity-50 scale-105 shadow-2xl bg-white/20' : ''} ${className}`}>
       {!isBatchMode && <a href={mainLink} target="_blank" rel="noreferrer" className="absolute inset-0 z-0" />}
       {isBatchMode && (
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onToggleSelect?.(site.id); }}
-          className={`absolute top-1.5 left-1.5 z-30 w-5 h-5 rounded border flex items-center justify-center transition ${isSelected ? 'bg-blue-500 border-blue-500 text-white' : 'bg-black/40 border-white/30 text-transparent hover:border-white/60'}`}
+          className={`absolute top-1.5 left-1.5 z-30 w-5 h-5 md:w-5 md:h-5 rounded border flex items-center justify-center transition ${isSelected ? 'bg-blue-500 border-blue-500 text-white' : 'bg-black/40 border-white/30 text-transparent hover:border-white/60'}`}
           title="选择站点"
         >
           <Check size={12} />
         </button>
       )}
-      <div className="relative z-10 w-14 h-14 flex-shrink-0 bg-white/5 rounded-xl p-1.5 flex items-center justify-center shadow-sm pointer-events-none">
+      <div className="relative z-10 w-10 h-10 md:w-14 md:h-14 flex-shrink-0 bg-white/5 rounded-xl p-1 md:p-1.5 flex items-center justify-center shadow-sm pointer-events-none">
         {!imgError && faviconUrl ? (
           <img ref={imgRef} src={faviconUrl} alt={site.name} className="w-full h-full object-contain drop-shadow-sm" onLoad={handleImgLoad} onError={handleImgError} />
         ) : (
-          <span className="text-xl font-bold text-white/40">{site.name.charAt(0).toUpperCase()}</span>
+          <span className="text-lg md:text-xl font-bold text-white/40">{site.name.charAt(0).toUpperCase()}</span>
         )}
       </div>
-      <div className="relative z-10 flex-1 min-w-0 flex flex-col justify-center ml-3 overflow-hidden pointer-events-none" ref={textContainerRef}>
-        <div className="w-full relative h-6 flex items-center">
-          <h4 ref={textRef} className={`text-sm font-semibold text-white/90 truncate tracking-wide text-shadow absolute inset-0 transition-opacity duration-300 ${shouldScroll ? 'group-hover:opacity-0' : ''}`}>{site.name}</h4>
+      <div className="relative z-10 flex-1 min-w-0 flex flex-col justify-center ml-2 md:ml-3 overflow-hidden pointer-events-none" ref={textContainerRef}>
+        <div className="w-full relative h-5 md:h-6 flex items-center">
+          <h4 ref={textRef} className={`text-xs md:text-sm font-semibold text-white/90 truncate tracking-wide text-shadow absolute inset-0 transition-opacity duration-300 ${shouldScroll ? 'group-hover:opacity-0' : ''}`}>{site.name}</h4>
           {shouldScroll && (
             <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 absolute inset-0 flex items-center">
               <div className="animate-scroll-text">
-                <span className="text-sm font-semibold text-white/90 tracking-wide text-shadow whitespace-nowrap">{site.name}</span>
+                <span className="text-xs md:text-sm font-semibold text-white/90 tracking-wide text-shadow whitespace-nowrap">{site.name}</span>
                 <span className="inline-block w-8"></span>
-                <span className="text-sm font-semibold text-white/90 tracking-wide text-shadow whitespace-nowrap">{site.name}</span>
+                <span className="text-xs md:text-sm font-semibold text-white/90 tracking-wide text-shadow whitespace-nowrap">{site.name}</span>
                 <span className="inline-block w-8"></span>
               </div>
             </div>
@@ -129,9 +129,9 @@ export function SiteCard({ site, isAdmin, onEdit, onDelete, className = "", isBa
         <a href={site.innerUrl} target="_blank" rel="noreferrer" className="relative z-20 mt-auto ml-auto md:absolute md:bottom-1.5 md:right-1.5 bg-emerald-500/20 hover:bg-emerald-500/90 text-emerald-300 hover:text-white text-[10px] px-1.5 py-0.5 rounded-full border border-emerald-500/30 transition-all font-bold shadow-sm opacity-0 group-hover:opacity-100" title={`内网地址: ${site.innerUrl}`} onClick={(e) => e.stopPropagation()}>内</a>
       )}
       {isAdmin && !isBatchMode && (
-        <div className="absolute top-1.5 right-1.5 z-30 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 rounded-lg p-1 backdrop-blur-md border border-white/10 scale-90 hover:scale-100 pointer-events-auto">
-          <button onClick={(e) => { e.stopPropagation(); onEdit(); }} className="p-1 text-white/70 hover:text-blue-400 rounded-md hover:bg-white/10 transition"><Edit2 size={12} /></button>
-          <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-1 text-white/70 hover:text-red-400 rounded-md hover:bg-white/10 transition"><Trash2 size={12} /></button>
+        <div className="absolute top-1 right-1 md:top-1.5 md:right-1.5 z-30 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 rounded-lg p-1 backdrop-blur-md border border-white/10 scale-90 hover:scale-100 pointer-events-auto">
+          <button onClick={(e) => { e.stopPropagation(); onEdit(); }} className="p-1.5 md:p-1 text-white/70 hover:text-blue-400 rounded-md hover:bg-white/10 transition"><Edit2 size={14} className="md:w-3 md:h-3" /></button>
+          <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-1.5 md:p-1 text-white/70 hover:text-red-400 rounded-md hover:bg-white/10 transition"><Trash2 size={14} className="md:w-3 md:h-3" /></button>
         </div>
       )}
     </div>

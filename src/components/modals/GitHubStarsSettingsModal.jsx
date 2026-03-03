@@ -83,36 +83,36 @@ export default function GitHubStarsSettingsModal({
         <div className="flex border-b border-white/10">
           <button
             onClick={() => setActiveTab('github')}
-            className={`flex-1 py-3 px-4 text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+            className={`flex-1 py-2.5 md:py-3 px-3 md:px-4 text-xs md:text-sm font-medium transition-all flex items-center justify-center gap-1.5 md:gap-2 ${
               activeTab === 'github'
                 ? 'text-white border-b-2 border-cyan-500 bg-white/5'
                 : 'text-white/50 hover:text-white/80 hover:bg-white/5'
             }`}
           >
-            <Github size={16} />
-            GitHub 认证
+            <Github size={14} className="md:w-4 md:h-4" />
+            <span className="hidden xs:inline">GitHub</span> 认证
           </button>
           <button
             onClick={() => setActiveTab('ai')}
-            className={`flex-1 py-3 px-4 text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+            className={`flex-1 py-2.5 md:py-3 px-3 md:px-4 text-xs md:text-sm font-medium transition-all flex items-center justify-center gap-1.5 md:gap-2 ${
               activeTab === 'ai'
                 ? 'text-white border-b-2 border-purple-500 bg-white/5'
                 : 'text-white/50 hover:text-white/80 hover:bg-white/5'
             }`}
           >
-            <Sparkles size={16} />
+            <Sparkles size={14} className="md:w-4 md:h-4" />
             AI 配置
           </button>
         </div>
 
         {/* 内容区域 */}
-        <div className="p-5 max-h-[60vh] overflow-y-auto custom-scrollbar">
+        <div className="p-4 md:p-5 max-h-[60vh] overflow-y-auto custom-scrollbar">
           {activeTab === 'github' ? (
             <div className="space-y-4">
               {/* 认证方式选择 */}
               <div>
                 <label className="block text-xs text-white/50 font-medium mb-2 ml-1">认证方式</label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 xs:grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setFormData(prev => ({ ...prev, github: { ...prev.github, authType: 'pat' } }))}
@@ -123,7 +123,7 @@ export default function GitHubStarsSettingsModal({
                     }`}
                   >
                     <Key size={14} />
-                    Personal Access Token
+                    <span className="hidden xs:inline">Personal Access</span> Token
                   </button>
                   <button
                     type="button"
@@ -303,7 +303,7 @@ export default function GitHubStarsSettingsModal({
                         ...prev,
                         aiConfig: { ...prev.aiConfig, provider: key }
                       }))}
-                      className={`py-2.5 px-3 rounded-xl text-sm font-medium transition-all ${
+                      className={`py-2 md:py-2.5 px-2 md:px-3 rounded-xl text-xs md:text-sm font-medium transition-all ${
                         formData.aiConfig.provider === key
                           ? 'bg-purple-600 text-white'
                           : 'bg-white/5 text-white/70 hover:bg-white/10'
@@ -504,7 +504,7 @@ export default function GitHubStarsSettingsModal({
               {/* 重置分组 */}
               {reposCount > 0 && (
                 <div className="border-t border-white/10 pt-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
                       <p className="text-sm text-white/70">重置所有分组</p>
                       <p className="text-xs text-white/40 mt-0.5">清空 {reposCount} 个仓库的分组，以便重新 AI 分析</p>
@@ -522,7 +522,7 @@ export default function GitHubStarsSettingsModal({
                         }
                       }}
                       disabled={resetting}
-                      className="px-3 py-2 bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 text-red-400 rounded-xl text-sm font-medium transition flex items-center gap-1.5 disabled:opacity-50"
+                      className="px-3 py-2 bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 text-red-400 rounded-xl text-sm font-medium transition flex items-center justify-center gap-1.5 disabled:opacity-50 shrink-0"
                     >
                       {resetting ? (
                         <Loader2 size={14} className="animate-spin" />
@@ -539,7 +539,7 @@ export default function GitHubStarsSettingsModal({
         </div>
 
         {/* 底部按钮 */}
-        <div className="p-5 border-t border-white/10 flex gap-3">
+        <div className="p-4 md:p-5 border-t border-white/10 flex gap-3">
           <button
             type="button"
             onClick={onClose}

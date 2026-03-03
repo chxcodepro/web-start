@@ -122,9 +122,9 @@ export default function GitHubStarsPage({
                 <ArrowLeft size={20} />
               </button>
               <div>
-                <h1 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Github size={20} />
-                  GitHub Stars
+                <h1 className="text-base md:text-lg font-bold text-white flex items-center gap-2">
+                  <Github size={18} className="md:w-5 md:h-5" />
+                  <span className="hidden xs:inline">GitHub</span> Stars
                 </h1>
                 <p className="text-xs text-white/40">
                   {stats.total} 个仓库 · {stats.groupCount} 个分组
@@ -133,25 +133,27 @@ export default function GitHubStarsPage({
             </div>
 
             {/* 右侧：操作按钮 */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 md:gap-2">
               {/* 同步按钮 */}
               <button
                 onClick={onSync}
                 disabled={syncing || !isGitHubConfigured}
-                className="px-3 py-2 bg-white/10 hover:bg-white/20 disabled:opacity-50 rounded-xl text-sm text-white font-medium transition flex items-center gap-2"
+                className="px-2 md:px-3 py-2 bg-white/10 hover:bg-white/20 disabled:opacity-50 rounded-xl text-sm text-white font-medium transition flex items-center gap-1.5 md:gap-2"
               >
                 <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
-                {syncing ? '同步中...' : '同步'}
+                <span className="hidden sm:inline">{syncing ? '同步中...' : '同步'}</span>
               </button>
 
               {/* AI 分组按钮 */}
               <button
                 onClick={onAIAnalyze}
                 disabled={analyzing || stats.ungrouped === 0 || !config?.aiConfig?.apiKey}
-                className="px-3 py-2 bg-purple-600/80 hover:bg-purple-500 disabled:opacity-50 rounded-xl text-sm text-white font-medium transition flex items-center gap-2"
+                className="px-2 md:px-3 py-2 bg-purple-600/80 hover:bg-purple-500 disabled:opacity-50 rounded-xl text-sm text-white font-medium transition flex items-center gap-1.5 md:gap-2"
               >
                 <Sparkles size={14} className={analyzing ? 'animate-pulse' : ''} />
-                {analyzing ? '分析中...' : `AI 分组 (${stats.ungrouped})`}
+                <span className="hidden sm:inline">{analyzing ? '分析中...' : 'AI 分组'}</span>
+                <span className="sm:hidden">{stats.ungrouped}</span>
+                <span className="hidden sm:inline">({stats.ungrouped})</span>
               </button>
 
               {/* 设置按钮 */}
@@ -187,9 +189,9 @@ export default function GitHubStarsPage({
       {isGitHubConfigured && (
         <div className="container mx-auto px-4 md:px-8 max-w-[1600px] py-6">
           {/* 搜索和筛选栏 */}
-          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 mb-6">
+          <div className="flex flex-col gap-3 mb-6">
             {/* 搜索框 */}
-            <div className="relative flex-1">
+            <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
               <input
                 type="text"
@@ -201,12 +203,12 @@ export default function GitHubStarsPage({
             </div>
 
             {/* 筛选按钮组 */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               {/* 语言筛选 */}
               <select
                 value={filterLanguage}
                 onChange={(e) => setFilterLanguage(e.target.value)}
-                className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none appearance-none cursor-pointer [&>option]:bg-gray-800 [&>option]:text-white"
+                className="flex-1 min-w-[100px] max-w-[150px] bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none appearance-none cursor-pointer [&>option]:bg-gray-800 [&>option]:text-white"
               >
                 <option value="all">所有语言</option>
                 {languages.map(lang => (
@@ -218,7 +220,7 @@ export default function GitHubStarsPage({
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none appearance-none cursor-pointer [&>option]:bg-gray-800 [&>option]:text-white"
+                className="flex-1 min-w-[90px] max-w-[120px] bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none appearance-none cursor-pointer [&>option]:bg-gray-800 [&>option]:text-white"
               >
                 <option value="stars">按 Stars</option>
                 <option value="name">按名称</option>
@@ -227,7 +229,7 @@ export default function GitHubStarsPage({
               </select>
 
               {/* 视图切换 */}
-              <div className="flex bg-white/5 rounded-xl p-1 border border-white/10">
+              <div className="flex bg-white/5 rounded-xl p-1 border border-white/10 ml-auto">
                 <button
                   onClick={() => setViewMode('group')}
                   className={`p-2 rounded-lg transition ${viewMode === 'group' ? 'bg-white/20 text-white' : 'text-white/50 hover:text-white'}`}

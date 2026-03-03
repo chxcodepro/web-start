@@ -46,7 +46,7 @@ export default function WebDavModal({ isOpen, onClose, initialConfig, onSaveConf
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-white/50 font-medium mb-1.5 ml-1">用户名</label>
               <input

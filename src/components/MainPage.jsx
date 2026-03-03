@@ -103,7 +103,7 @@ export default function MainPage({
         </div>
       )}
 
-      <div className="relative z-10 container mx-auto pl-8 pr-20 md:pl-16 md:pr-24 py-8 max-w-[1600px] pb-40 transition-all duration-300">
+      <div className="relative z-10 container mx-auto px-4 pr-16 md:pl-16 md:pr-24 py-8 max-w-[1600px] pb-40 transition-all duration-300">
         {/* 搜索框区域 */}
         <SearchBox
           searchQuery={searchQuery}
@@ -235,7 +235,7 @@ function SearchBox({
                 type="button"
                 onClick={() => setIsEngineDropdownOpen(!isEngineDropdownOpen)}
                 onBlur={() => setTimeout(() => setIsEngineDropdownOpen(false), 150)}
-                className="h-14 pl-5 pr-8 bg-transparent border-r border-white/10 text-white/90 focus:outline-none cursor-pointer text-sm font-medium hover:text-white transition-colors flex items-center gap-2"
+                className="h-12 md:h-14 pl-4 md:pl-5 pr-6 md:pr-8 bg-transparent border-r border-white/10 text-white/90 focus:outline-none cursor-pointer text-sm font-medium hover:text-white transition-colors flex items-center gap-2"
               >
                 {SEARCH_ENGINES[searchEngine]?.name || 'Google'}
               </button>
@@ -282,10 +282,10 @@ function SearchBox({
                 if (!isSearchFocused) setIsSearchFocused(true);
               }}
               placeholder="搜索..."
-              className="flex-1 h-14 px-4 bg-transparent text-white placeholder-white/40 text-lg focus:outline-none"
+              className="flex-1 h-12 md:h-14 px-3 md:px-4 bg-transparent text-white placeholder-white/40 text-base md:text-lg focus:outline-none"
             />
-            <button type="submit" className="pr-5 pl-2 flex items-center text-white/50 hover:text-white transition-colors cursor-pointer">
-              <Search size={22} />
+            <button type="submit" className="pr-4 md:pr-5 pl-2 flex items-center text-white/50 hover:text-white transition-colors cursor-pointer">
+              <Search size={20} className="md:w-[22px] md:h-[22px]" />
             </button>
           </form>
         </div>
@@ -525,26 +525,26 @@ function FloatingButtons({
   handleLogout,
 }) {
   return (
-    <div className="fixed bottom-8 right-8 flex flex-col gap-3 z-40 animate-slide-in-right">
+    <div className="fixed bottom-6 right-4 md:bottom-8 md:right-8 flex flex-col gap-2 md:gap-3 z-40 animate-slide-in-right">
       {!isAdmin ? (
-        <button onClick={() => setIsLoginModalOpen(true)} className="w-12 h-12 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-full shadow-lg backdrop-blur-sm flex items-center justify-center transition-all border border-white/10 btn-press animate-float" title="管理员登录">
-          <Lock size={20} />
+        <button onClick={() => setIsLoginModalOpen(true)} className="w-11 h-11 md:w-12 md:h-12 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-full shadow-lg backdrop-blur-sm flex items-center justify-center transition-all border border-white/10 btn-press animate-float" title="管理员登录">
+          <Lock size={18} className="md:w-5 md:h-5" />
         </button>
       ) : (
         <>
-          <button onClick={() => setIsGroupModalOpen(true)} className="w-12 h-12 bg-indigo-600/90 hover:bg-indigo-500 text-white rounded-full shadow-lg shadow-indigo-900/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press" title="管理分组"><LayoutGrid size={18} /></button>
-          <button onClick={() => setIsBgModalOpen(true)} className="w-12 h-12 bg-gray-700/90 hover:bg-gray-600 text-white rounded-full shadow-lg shadow-black/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press" title="设置背景"><ImageIcon size={18} /></button>
-          <button onClick={() => setIsWebDavModalOpen(true)} className="w-12 h-12 bg-cyan-600/90 hover:bg-cyan-500 text-white rounded-full shadow-lg shadow-cyan-900/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press" title="WebDAV"><Settings size={18} /></button>
-          <button onClick={() => importInputRef.current?.click()} className="w-12 h-12 bg-violet-600/90 hover:bg-violet-500 text-white rounded-full shadow-lg shadow-violet-900/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press" title="导入书签"><Upload size={18} /></button>
-          <button onClick={() => setIsBatchMode(v => !v)} className={`w-12 h-12 text-white rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press ${isBatchMode ? 'bg-amber-600/90 hover:bg-amber-500 shadow-amber-900/40' : 'bg-white/20 hover:bg-white/30 shadow-black/40'}`} title={isBatchMode ? '退出批量' : '批量删除'}><Trash2 size={18} /></button>
+          <button onClick={() => setIsGroupModalOpen(true)} className="w-11 h-11 md:w-12 md:h-12 bg-indigo-600/90 hover:bg-indigo-500 text-white rounded-full shadow-lg shadow-indigo-900/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press" title="管理分组"><LayoutGrid size={16} className="md:w-[18px] md:h-[18px]" /></button>
+          <button onClick={() => setIsBgModalOpen(true)} className="w-11 h-11 md:w-12 md:h-12 bg-gray-700/90 hover:bg-gray-600 text-white rounded-full shadow-lg shadow-black/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press" title="设置背景"><ImageIcon size={16} className="md:w-[18px] md:h-[18px]" /></button>
+          <button onClick={() => setIsWebDavModalOpen(true)} className="w-11 h-11 md:w-12 md:h-12 bg-cyan-600/90 hover:bg-cyan-500 text-white rounded-full shadow-lg shadow-cyan-900/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press" title="WebDAV"><Settings size={16} className="md:w-[18px] md:h-[18px]" /></button>
+          <button onClick={() => importInputRef.current?.click()} className="w-11 h-11 md:w-12 md:h-12 bg-violet-600/90 hover:bg-violet-500 text-white rounded-full shadow-lg shadow-violet-900/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press" title="导入书签"><Upload size={16} className="md:w-[18px] md:h-[18px]" /></button>
+          <button onClick={() => setIsBatchMode(v => !v)} className={`w-11 h-11 md:w-12 md:h-12 text-white rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press ${isBatchMode ? 'bg-amber-600/90 hover:bg-amber-500 shadow-amber-900/40' : 'bg-white/20 hover:bg-white/30 shadow-black/40'}`} title={isBatchMode ? '退出批量' : '批量删除'}><Trash2 size={16} className="md:w-[18px] md:h-[18px]" /></button>
           {isBatchMode && (
             <>
-              <button onClick={toggleSelectAllSites} className="w-12 h-12 bg-white/20 hover:bg-white/30 text-white rounded-full shadow-lg shadow-black/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press animate-bounce-in" title={selectedSiteIds.length === (activePage.sites || []).length && (activePage.sites || []).length > 0 ? '取消全选' : '全选'}><Check size={18} /></button>
-              <button onClick={requestDeleteSelectedSites} disabled={selectedSiteIds.length === 0} className="w-12 h-12 bg-red-600/90 hover:bg-red-500 disabled:opacity-50 disabled:hover:bg-red-600 text-white rounded-full shadow-lg shadow-red-900/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press animate-bounce-in" title={`删除选中 (${selectedSiteIds.length})`}><Trash2 size={18} /></button>
+              <button onClick={toggleSelectAllSites} className="w-11 h-11 md:w-12 md:h-12 bg-white/20 hover:bg-white/30 text-white rounded-full shadow-lg shadow-black/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press animate-bounce-in" title={selectedSiteIds.length === (activePage.sites || []).length && (activePage.sites || []).length > 0 ? '取消全选' : '全选'}><Check size={16} className="md:w-[18px] md:h-[18px]" /></button>
+              <button onClick={requestDeleteSelectedSites} disabled={selectedSiteIds.length === 0} className="w-11 h-11 md:w-12 md:h-12 bg-red-600/90 hover:bg-red-500 disabled:opacity-50 disabled:hover:bg-red-600 text-white rounded-full shadow-lg shadow-red-900/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press animate-bounce-in" title={`删除选中 (${selectedSiteIds.length})`}><Trash2 size={16} className="md:w-[18px] md:h-[18px]" /></button>
             </>
           )}
-          <button onClick={() => { setEditingSite(null); setIsModalOpen(true); }} className="w-12 h-12 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg shadow-blue-900/50 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press animate-pulse-glow" title="添加站点"><Plus size={20} /></button>
-          <button onClick={handleLogout} className="w-12 h-12 bg-red-600/80 hover:bg-red-500 text-white rounded-full shadow-lg shadow-red-900/30 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press" title="退出登录"><LogOut size={18} /></button>
+          <button onClick={() => { setEditingSite(null); setIsModalOpen(true); }} className="w-11 h-11 md:w-12 md:h-12 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg shadow-blue-900/50 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press animate-pulse-glow" title="添加站点"><Plus size={18} className="md:w-5 md:h-5" /></button>
+          <button onClick={handleLogout} className="w-11 h-11 md:w-12 md:h-12 bg-red-600/80 hover:bg-red-500 text-white rounded-full shadow-lg shadow-red-900/30 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press" title="退出登录"><LogOut size={16} className="md:w-[18px] md:h-[18px]" /></button>
         </>
       )}
     </div>
@@ -556,28 +556,28 @@ function FloatingButtons({
  */
 function PageTabs({ showStarsPage, setShowStarsPage }) {
   return (
-    <div className="fixed top-4 left-8 z-50">
+    <div className="fixed top-4 left-4 md:left-8 z-50">
       <div className="flex bg-white/10 backdrop-blur-xl rounded-xl p-1 border border-white/10 shadow-lg">
         <button
           onClick={() => setShowStarsPage(false)}
-          className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${
+          className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium flex items-center gap-1.5 md:gap-2 transition-all ${
             !showStarsPage
               ? 'bg-white/20 text-white shadow-sm'
               : 'text-white/60 hover:text-white hover:bg-white/10'
           }`}
         >
-          <Home size={16} />
-          导航
+          <Home size={14} className="md:w-4 md:h-4" />
+          <span className="hidden xs:inline">导航</span>
         </button>
         <button
           onClick={() => setShowStarsPage(true)}
-          className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${
+          className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium flex items-center gap-1.5 md:gap-2 transition-all ${
             showStarsPage
               ? 'bg-white/20 text-white shadow-sm'
               : 'text-white/60 hover:text-white hover:bg-white/10'
           }`}
         >
-          <Star size={16} />
+          <Star size={14} className="md:w-4 md:h-4" />
           Stars
         </button>
       </div>

@@ -192,11 +192,11 @@ export default function GroupModal({
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-md animate-[fadeInUp_0.2s_ease-out]" onClick={onClose} />
-      <div className="relative z-10 backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl w-full max-w-5xl max-h-[80vh] shadow-[0_8px_32px_rgba(0,0,0,0.4)] animate-fade-in-scale flex flex-col">
+      <div className="relative z-10 backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl w-full max-w-5xl max-h-[90vh] md:max-h-[80vh] shadow-[0_8px_32px_rgba(0,0,0,0.4)] animate-fade-in-scale flex flex-col">
         {/* 标题栏 */}
-        <div className="flex justify-between items-center p-6 pb-4 border-b border-white/10">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <LayoutGrid size={20} className="text-indigo-400" />
+        <div className="flex justify-between items-center p-4 md:p-6 pb-3 md:pb-4 border-b border-white/10">
+          <h2 className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
+            <LayoutGrid size={18} className="text-indigo-400 md:w-5 md:h-5" />
             综合管理
           </h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition">
@@ -212,11 +212,11 @@ export default function GroupModal({
           onDragEnd={handleDragEnd}
           onDragCancel={handleDragCancel}
         >
-          <div className="flex flex-1 overflow-hidden">
+          <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
             {/* 左侧：分组列表 */}
-            <div className="w-64 border-r border-white/10 flex flex-col">
+            <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-white/10 flex flex-col max-h-[35vh] md:max-h-none">
               {/* 新建分组 */}
-              <div className="p-4 border-b border-white/10">
+              <div className="p-3 md:p-4 border-b border-white/10">
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -291,9 +291,9 @@ export default function GroupModal({
             </div>
 
             {/* 右侧：网站列表 */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col min-h-0">
               {/* 搜索和操作栏 */}
-              <div className="p-4 border-b border-white/10 flex items-center gap-3">
+              <div className="p-3 md:p-4 border-b border-white/10 flex items-center gap-2 md:gap-3">
                 <div className="flex-1 relative">
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
                   <input
@@ -316,7 +316,7 @@ export default function GroupModal({
               </div>
 
               {/* 网站网格 */}
-              <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+              <div className="flex-1 overflow-y-auto p-3 md:p-4 custom-scrollbar">
                 {!selectedGroup ? (
                   <div className="flex items-center justify-center h-full text-white/40">
                     请选择一个分组
@@ -351,7 +351,7 @@ export default function GroupModal({
               </div>
 
               {/* 底部操作栏 */}
-              <div className="p-4 border-t border-white/10 flex items-center justify-between">
+              <div className="p-3 md:p-4 border-t border-white/10 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <button
                     onClick={toggleSelectAll}

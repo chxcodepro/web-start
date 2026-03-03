@@ -131,7 +131,7 @@ export default function SiteModal({ isOpen, onClose, onSubmit, onBatchSubmit, in
         {/* 单个添加表单 */}
         {!isBatchMode && (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs text-white/50 font-medium mb-2 ml-1">名称</label>
                 <input
@@ -188,7 +188,7 @@ export default function SiteModal({ isOpen, onClose, onSubmit, onBatchSubmit, in
         {/* 批量添加表单 */}
         {isBatchMode && (
           <form onSubmit={handleBatchSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs text-white/50 font-medium mb-2 ml-1">名称 <span className="text-white/30">（统一）</span></label>
                 <input
@@ -217,7 +217,7 @@ export default function SiteModal({ isOpen, onClose, onSubmit, onBatchSubmit, in
               </label>
               <textarea
                 className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:border-violet-500/50 focus:bg-white/15 focus:outline-none font-mono text-sm transition-all resize-none"
-                rows={5}
+                rows={4}
                 value={batchUrls}
                 onChange={e => setBatchUrls(e.target.value)}
                 placeholder={`https://example1.com\nhttps://example2.com\nexample3.com`}
