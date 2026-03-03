@@ -94,7 +94,7 @@ export function useSearch() {
     setActiveSuggestionIndex(-1);
     const engine = SEARCH_ENGINES[searchEngine] || SEARCH_ENGINES.google;
     const url = `${engine.searchUrl}${encodeURIComponent(keyword)}`;
-    window.open(url, '_blank');
+    window.location.href = url;
   };
 
   // 选择建议
@@ -108,7 +108,7 @@ export function useSearch() {
     localStorage.setItem(SEARCH_HISTORY_STORAGE_KEY, JSON.stringify(nextHistory));
     const engine = SEARCH_ENGINES[searchEngine] || SEARCH_ENGINES.google;
     const url = `${engine.searchUrl}${encodeURIComponent(keyword)}`;
-    window.open(url, '_blank');
+    window.location.href = url;
   };
 
   // 切换搜索引擎

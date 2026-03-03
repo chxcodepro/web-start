@@ -92,7 +92,7 @@ export function SiteCard({ site, isAdmin, onEdit, onDelete, className = "", isBa
 
   return (
     <div className={`group relative h-16 md:h-20 hover:bg-white/10 rounded-2xl transition-all duration-300 flex items-center px-2 md:px-3 overflow-hidden w-full card-hover ${isDragging ? 'opacity-50 scale-105 shadow-2xl bg-white/20' : ''} ${className}`}>
-      {!isBatchMode && <a href={mainLink} target="_blank" rel="noreferrer" className="absolute inset-0 z-0" />}
+      {!isBatchMode && <a href={mainLink} rel="noreferrer" className="absolute inset-0 z-0" />}
       {isBatchMode && (
         <button
           type="button"
