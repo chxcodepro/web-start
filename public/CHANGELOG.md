@@ -1,55 +1,52 @@
-## 0.1.3 (2026-03-03)
+# 更新日志
 
+## v0.1.3 (2026-03-04)
 
-### Bug Fixes
+### 新功能
+- **搜索优先匹配已收藏网站**：输入关键词优先显示已添加的网站，Tab 键补全，Enter 直接跳转
+- **综合管理批量移动分组**：选中多个网站后拖拽到目标分组，一次移动所有选中项
 
-* 分组下拉框改为向上弹出避免遮挡 ([468e498](https://github.com/chxcodepro/web-start/commit/468e49864c4d7a0bcc73fa3e3782c431aa06760a))
-* 加强 AI 分组返回格式校验 ([b208723](https://github.com/chxcodepro/web-start/commit/b20872369d8ec3e283b77e1658633119526715b4))
-* 修复代码扫描发现的问题 ([048da83](https://github.com/chxcodepro/web-start/commit/048da83567e788fe535380b1d554772abf8f22e4))
-* 修复弹窗表单初始化逻辑 ([15edffd](https://github.com/chxcodepro/web-start/commit/15edffdc91a89013691e36428beb2efad68c8bdf))
-* 修复下拉选择框弹出方向问题 ([96f56c1](https://github.com/chxcodepro/web-start/commit/96f56c19d5bed183a35534576a920727afe22369))
-* 修复下拉选择框的z-index层级问题 ([8f69f2b](https://github.com/chxcodepro/web-start/commit/8f69f2bc4cd73c160286ff1012da6a3b32b38605))
-* 修复下拉选择框的z-index层级问题 ([67775c0](https://github.com/chxcodepro/web-start/commit/67775c06e42bebb2fd1f4e8eb74450446206243a))
-* 修正版本号为 v0.1.2 ([152bd3f](https://github.com/chxcodepro/web-start/commit/152bd3f3e3a48f46a120aed196061b69b70e35ca))
+### 优化
+- 书签导入不再覆盖现有分组，追加到指定分组
+- 添加站点时切换单个/批量模式保持分组选择
+- 修复移动端搜索图标偏移问题
+- 清理未使用的变量和导入
 
+---
 
-### Features
+## v0.1.2 (2026-03-03)
 
-* 导航页链接改为当前页打开 ([2191b7c](https://github.com/chxcodepro/web-start/commit/2191b7c1f3bed947675a90f35a2d647396a73987))
-* 更新版本至0.1.1并添加版本标签 ([9e6cb67](https://github.com/chxcodepro/web-start/commit/9e6cb67267350563aa95cf9579b4fd013de76dea))
-* 更新版本至0.1.1并添加版本标签 ([257b90e](https://github.com/chxcodepro/web-start/commit/257b90eb559e7c524f11e55fe837e5fa70757e90))
-* 更新下拉菜单z-index和favicon服务 ([396a32c](https://github.com/chxcodepro/web-start/commit/396a32c6000c8b486565fa2e95ff8301bc32bdc4))
-* 将默认排序方式改为按更新时间并更新相关字段 ([ac9f216](https://github.com/chxcodepro/web-start/commit/ac9f216c965795091a8ac98d9fe75dbec151c243))
-* 全站移动端适配优化 ([c5929f7](https://github.com/chxcodepro/web-start/commit/c5929f7dc3a6f6a9a5d03d50c61a626f8af1a6d6))
-* 使用 createPortal 优化拖拽预览并回滚版本号 ([87c6616](https://github.com/chxcodepro/web-start/commit/87c66165735eec3cad69743081a86739a1022341))
-* 搜索优先匹配已收藏网站 + 综合管理批量移动分组 ([4dd0566](https://github.com/chxcodepro/web-start/commit/4dd0566cb139ccfe883a05f90ca36d7803493ab3))
-* 替换alert为toast提示并优化搜索引擎选择器 ([0654526](https://github.com/chxcodepro/web-start/commit/06545266ab50613ccb111f87f6ba24242f288ad9))
-* 添加版本标签并更新模态框样式 ([cf61104](https://github.com/chxcodepro/web-start/commit/cf61104d4b12735938e99775fde250a3015dbd04))
-* 添加分组折叠功能并优化动画效果 ([9e9e740](https://github.com/chxcodepro/web-start/commit/9e9e7400aa02b8961ac374b4066ff9ad8fb4221b))
-* 添加批量添加站点功能 ([30f6ae6](https://github.com/chxcodepro/web-start/commit/30f6ae64168b5c3543ff3054042e1d2683c91c3d))
-* 添加清除网站图标缓存功能 ([edd4755](https://github.com/chxcodepro/web-start/commit/edd47558aad2cf03f4a4f4d4cc60dd9d8ad674d7))
-* 添加搜索历史记录和自动补全功能 ([6ae1dda](https://github.com/chxcodepro/web-start/commit/6ae1dda5d33fd8599f004e5d6f21517c6f20ec7d))
-* 添加搜索引擎切换功能并优化书签导入流程 ([dd0ed90](https://github.com/chxcodepro/web-start/commit/dd0ed9057f997874c0179abebbd103cc79b90bff))
-* 添加站点拖拽排序功能并优化UI设计 ([24698fb](https://github.com/chxcodepro/web-start/commit/24698fbee02a4482a43f9177cde6d9df5c80e113))
-* 添加重置分组功能，支持清空所有仓库分组以便重新 AI 分析 ([4ff9243](https://github.com/chxcodepro/web-start/commit/4ff9243eb8f4b176f7e4723f67d52769a92cce3d))
-* 添加自动生成 CHANGELOG 脚本 ([f94ecde](https://github.com/chxcodepro/web-start/commit/f94ecde0e836474f458fe60af1bcc435739f269a))
-* 为分组管理添加重命名和排序功能 ([89dd355](https://github.com/chxcodepro/web-start/commit/89dd3552e55aea3acf5ec9a189c17763911d566e))
-* 为站点卡片添加图标缓存功能 ([4e6274e](https://github.com/chxcodepro/web-start/commit/4e6274ef0f6d70731cf7cfe2b0e6687b7e77fe5e))
-* 为站点卡片添加图标缓存功能 ([8636d37](https://github.com/chxcodepro/web-start/commit/8636d37121a2e52fe1b1bc1cba245263bf597d81))
-* 修改 StarRepoCard 组件样式 ([d198489](https://github.com/chxcodepro/web-start/commit/d198489e4c7e40306c3119ac309e12af6957690c))
-* 修改App.jsx ([142036d](https://github.com/chxcodepro/web-start/commit/142036df6f68c0e8bd5cb149d9407f6add0d3c6d))
-* 修改StarRepoCard组件 ([8bc575a](https://github.com/chxcodepro/web-start/commit/8bc575a0ce35e74dd4c3e0d4975e011a652f8ac9))
-* 优化 GitHub Stars 卡片功能与交互细节 ([a9ec034](https://github.com/chxcodepro/web-start/commit/a9ec034e94002e3f00517be8ca1e53409f8da973))
-* 优化 GitHub Stars 卡片交互体验 ([cf30516](https://github.com/chxcodepro/web-start/commit/cf3051613cd48d7f9740e7fb0b0df442190bf69f))
-* 优化分组拖放体验并移除GitHub Stars功能 ([f8c57f0](https://github.com/chxcodepro/web-start/commit/f8c57f0ebbd07183ee23ddfb252b536d2fcd346b))
-* 优化搜索框交互和图标验证逻辑 ([49174a2](https://github.com/chxcodepro/web-start/commit/49174a2253527a9fd0665cc097ec09f610eba01d))
-* 优化拖拽交互并改进动画效果 ([3cae3fd](https://github.com/chxcodepro/web-start/commit/3cae3fde5460e4a19eb28ebd303aa7ddfda11ad3))
-* 优化拖拽交互并改进网站图标获取逻辑 ([937d7fd](https://github.com/chxcodepro/web-start/commit/937d7fd8cdca1b697c375e2738cc573c8f7f752d))
-* 优化Toast函数并调整页面布局 ([433cc89](https://github.com/chxcodepro/web-start/commit/433cc894797577fac92bb1d1676318fa9c9db3dd))
-* 增强分组管理功能并支持拖拽操作 ([cf993a6](https://github.com/chxcodepro/web-start/commit/cf993a6b0c0a91ea23f6e8970a854f03332efd1c))
-* add Firebase auth verification APIs ([5da8dcb](https://github.com/chxcodepro/web-start/commit/5da8dcb9dbe146045a21867c3faabd78289178c5))
-* add WebDAV backup/restore functions ([3048594](https://github.com/chxcodepro/web-start/commit/3048594a89f413fb9fc73185fbe197cd7d726d20))
-* GitHub Stars 分组支持重命名 + 未登录隐藏操作按钮 ([d213bff](https://github.com/chxcodepro/web-start/commit/d213bfffe000cbb353c7df76d2aaca95ac5b8781))
-* GitHub Stars 卡片实时展示最新发行版版本号 ([a9d0acd](https://github.com/chxcodepro/web-start/commit/a9d0acd920301cbab70c3ee467c36a6ebd1d4313))
-* GitHub Stars 支持预设分组和跨设备同步 ([bc26d54](https://github.com/chxcodepro/web-start/commit/bc26d543276be1556aa0667337d8dee4340daf4b))
-* implement WebDAV backup/restore APIs ([8ad7aea](https://github.com/chxcodepro/web-start/commit/8ad7aea82498c4bafb0e8ca723b1a1a0cdfac92f))
+### 新功能
+- 添加自动生成 CHANGELOG 脚本
+- 全站移动端适配优化
+- 添加批量添加站点功能
+- 添加分组折叠功能
+- 添加清除网站图标缓存功能
+
+### 修复
+- 修复下拉选择框弹出方向和层级问题
+- 修复弹窗表单初始化逻辑
+- 加强 AI 分组返回格式校验
+
+---
+
+## v0.1.1 (2026-03-02)
+
+### 新功能
+- 添加版本标签显示
+- 导航页链接改为当前页打开
+- 替换 alert 为 toast 提示
+- 优化搜索引擎选择器
+
+---
+
+## v0.1.0 (2026-03-01)
+
+### 初始版本
+- 网站导航管理
+- 分组管理与拖拽排序
+- 搜索引擎集成
+- WebDAV 备份/恢复
+- 书签导入
+- GitHub Stars 管理
+- 管理员模式
