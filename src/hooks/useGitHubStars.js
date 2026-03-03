@@ -336,6 +336,28 @@ export function useGitHubStars({ user, getApiAuthHeaders, showToast }) {
     }
   };
 
+  // 重置所有分组
+  const handleResetGroups = async () => {
+    if (starsRepos.length === 0) {
+      showToast('没有仓库数据', 'error');
+      return;
+    }
+
+    try {
+      const clearedRepos = starsRepos.map(r => ({ ...r, group: '' }));
+      await saveStarsToCloud({
+        repos: clearedRepos,
+        groups: [],
+      });
+      setStarsRepos(clearedRepos);
+      setStarsGroups([]);
+      showToast('已清空所有分组，可重新运行 AI 分组', 'success');
+    } catch (error) {
+      console.error('重置分组失败:', error);
+      showToast('重置失败', 'error');
+    }
+  };
+
   return {
     showStarsPage,
     setShowStarsPage,
@@ -356,5 +378,6 @@ export function useGitHubStars({ user, getApiAuthHeaders, showToast }) {
     handleSyncStars,
     handleAIAnalyze,
     handleUpdateStarsRepo,
+    handleResetGroups,
   };
 }

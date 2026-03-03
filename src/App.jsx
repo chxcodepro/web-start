@@ -83,6 +83,7 @@ export default function App() {
     handleSyncStars,
     handleAIAnalyze,
     handleUpdateStarsRepo,
+    handleResetGroups,
   } = stars;
 
   // Search Hook
@@ -229,6 +230,8 @@ export default function App() {
             onSaveConfig={handleSaveStarsConfig}
             onTestGitHub={handleTestGitHubToken}
             onStartOAuth={handleStartOAuth}
+            onResetGroups={handleResetGroups}
+            reposCount={starsRepos.length}
           />
         )}
         {/* Toast 提示 */}
@@ -369,6 +372,8 @@ export default function App() {
           onSaveConfig={handleSaveStarsConfig}
           onTestGitHub={handleTestGitHubToken}
           onStartOAuth={handleStartOAuth}
+          onResetGroups={handleResetGroups}
+          reposCount={starsRepos.length}
         />
       )}
 

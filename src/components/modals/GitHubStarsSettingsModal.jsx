@@ -1,6 +1,6 @@
 // GitHub Stars 设置弹窗组件
 import { useState, useEffect } from 'react';
-import { X, Github, Sparkles, Key, ExternalLink, Check, Loader2, Eye, EyeOff, Plus } from 'lucide-react';
+import { X, Github, Sparkles, Key, ExternalLink, Check, Loader2, Eye, EyeOff, Plus, Trash2 } from 'lucide-react';
 import { AI_PROVIDERS, DEFAULT_STARS_CONFIG } from '../../utils/constants';
 
 export default function GitHubStarsSettingsModal({
@@ -10,6 +10,8 @@ export default function GitHubStarsSettingsModal({
   onSaveConfig,
   onTestGitHub,
   onStartOAuth,
+  onResetGroups,
+  reposCount = 0,
 }) {
   const [activeTab, setActiveTab] = useState('github'); // 'github' | 'ai'
   const [formData, setFormData] = useState(DEFAULT_STARS_CONFIG);
@@ -17,7 +19,8 @@ export default function GitHubStarsSettingsModal({
   const [showApiKey, setShowApiKey] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
-  const [newGroupName, setNewGroupName] = useState(''); // 新增分组输入
+  const [newGroupName, setNewGroupName] = useState('');
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     if (initialConfig) {
@@ -497,6 +500,40 @@ export default function GitHubStarsSettingsModal({
                   <li>• 自定义 OpenAI 兼容接口</li>
                 </ul>
               </div>
+
+              {/* 重置分组 */}
+              {reposCount > 0 && (
+                <div className="border-t border-white/10 pt-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-white/70">重置所有分组</p>
+                      <p className="text-xs text-white/40 mt-0.5">清空 {reposCount} 个仓库的分组，以便重新 AI 分析</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!window.confirm('确定要清空所有仓库的分组吗？此操作不可撤销。')) return;
+                        setResetting(true);
+                        try {
+                          await onResetGroups?.();
+                          onClose();
+                        } finally {
+                          setResetting(false);
+                        }
+                      }}
+                      disabled={resetting}
+                      className="px-3 py-2 bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 text-red-400 rounded-xl text-sm font-medium transition flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      {resetting ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={14} />
+                      )}
+                      重置分组
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
