@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react';
 import { SINGLE_PAGE_ID, SINGLE_PAGE_NAME, BOOKMARK_UNGROUPED_GROUP } from '../utils/constants';
-import { mergePagesToSingle } from '../utils/helpers';
 import { getFaviconUrl } from '../utils/favicon';
 
 /**
@@ -126,7 +125,7 @@ export function useBookmarkImport({ activePage, savePagesToCloud, showToast }) {
     }
   };
 
-  // 确认导入
+  // 确认导入（所有导入的网站归入指定分组，不影响现有分组）
   const confirmImportBookmarks = async (targetGroup, createNewGroup) => {
     if (!importModalData) return;
     try {
@@ -142,13 +141,23 @@ export function useBookmarkImport({ activePage, savePagesToCloud, showToast }) {
         ...site,
         group: finalGroup,
       }));
-      const importedPage = {
+
+      // 保留现有分组，只追加新分组（如果不存在）
+      const existingGroups = activePage.groups || [];
+      const newGroups = existingGroups.includes(finalGroup)
+        ? existingGroups
+        : [...existingGroups, finalGroup];
+
+      // 合并：保留现有站点 + 追加导入站点
+      const mergedSites = [...(activePage.sites || []), ...sitesWithGroup];
+
+      const mergedPage = {
         id: SINGLE_PAGE_ID,
         name: SINGLE_PAGE_NAME,
-        groups: [finalGroup],
-        sites: sitesWithGroup,
+        groups: newGroups,
+        sites: mergedSites,
       };
-      const mergedPage = mergePagesToSingle([activePage, importedPage]);
+
       await savePagesToCloud([mergedPage], { silent: true });
       showToast(`导入成功：新增 ${sitesWithGroup.length} 个站点，归入分组「${finalGroup}」`, 'success');
       setImportModalData(null);

@@ -1,11 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { SEARCH_HISTORY_STORAGE_KEY, SEARCH_ENGINE_STORAGE_KEY, SEARCH_ENGINES } from '../utils/constants';
 
 /**
  * 搜索功能 Hook
  * 负责搜索引擎切换、搜索历史、搜索建议等
+ * @param {Object} options
+ * @param {Array} options.sites - 已收藏的网站列表
  */
-export function useSearch() {
+export function useSearch({ sites = [] } = {}) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -31,6 +33,22 @@ export function useSearch() {
 
   const searchInputRef = useRef(null);
 
+  // 匹配已收藏网站（优先级最高）
+  const matchedSites = useMemo(() => {
+    const keyword = searchQuery.trim().toLowerCase();
+    if (keyword.length < 1 || !sites.length) return [];
+    return sites
+      .filter(site => site.name?.toLowerCase().includes(keyword))
+      .slice(0, 5)
+      .map(site => ({
+        type: 'site',
+        name: site.name,
+        url: site.url || site.innerUrl,
+        logo: site.logo,
+        group: site.group,
+      }));
+  }, [searchQuery, sites]);
+
   // 搜索建议 effect
   useEffect(() => {
     const keyword = searchQuery.trim();
@@ -39,11 +57,15 @@ export function useSearch() {
       return;
     }
 
+    // 本地历史匹配（转为对象格式）
     const localMatches = searchHistory
       .filter(item => item.toLowerCase().includes(keyword.toLowerCase()))
-      .slice(0, 4);
+      .slice(0, 4)
+      .map(text => ({ type: 'history', text }));
 
-    setSearchSuggestions(localMatches);
+    // 先设置：网站 + 历史
+    const initial = [...matchedSites, ...localMatches];
+    setSearchSuggestions(initial.slice(0, 8));
 
     let cancelled = false;
     const timer = setTimeout(async () => {
@@ -51,12 +73,13 @@ export function useSearch() {
         const response = await fetch(`/api/suggest?q=${encodeURIComponent(keyword)}&engine=${searchEngine}`);
         if (!response.ok) throw new Error('请求失败');
         const data = await response.json();
-        const onlineSuggestions = data.suggestions || [];
+        const onlineSuggestions = (data.suggestions || []).map(text => ({ type: 'suggest', text }));
 
-        const merged = [...localMatches, ...onlineSuggestions];
+        // 合并：网站 > 历史 > 在线建议
+        const merged = [...matchedSites, ...localMatches, ...onlineSuggestions];
         const seen = new Set();
         const unique = merged.filter(item => {
-          const key = String(item).toLowerCase();
+          const key = item.type === 'site' ? `site:${item.url}` : item.text.toLowerCase();
           if (seen.has(key)) return false;
           seen.add(key);
           return true;
@@ -64,7 +87,7 @@ export function useSearch() {
 
         if (!cancelled) setSearchSuggestions(unique.slice(0, 8));
       } catch (error) {
-        console.log('在线建议获取失败，使用本地历史');
+        console.log('在线建议获取失败，使用本地数据');
       }
     }, 200);
 
@@ -72,7 +95,7 @@ export function useSearch() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [searchQuery, searchHistory, searchEngine]);
+  }, [searchQuery, searchHistory, searchEngine, matchedSites]);
 
   useEffect(() => {
     if (!isSearchFocused || searchSuggestions.length === 0) {
@@ -87,6 +110,16 @@ export function useSearch() {
     e.preventDefault();
     const keyword = searchQuery.trim();
     if (!keyword) return;
+
+    // 如果有选中的建议且是网站类型，直接跳转
+    if (activeSuggestionIndex >= 0) {
+      const selected = searchSuggestions[activeSuggestionIndex];
+      if (selected?.type === 'site' && selected.url) {
+        window.location.href = selected.url;
+        return;
+      }
+    }
+
     const nextHistory = [keyword, ...searchHistory.filter(item => item !== keyword)].slice(0, 30);
     setSearchHistory(nextHistory);
     localStorage.setItem(SEARCH_HISTORY_STORAGE_KEY, JSON.stringify(nextHistory));
@@ -98,7 +131,18 @@ export function useSearch() {
   };
 
   // 选择建议
-  const handleSuggestionSelect = (keyword) => {
+  const handleSuggestionSelect = (suggestion) => {
+    // 如果是网站，直接跳转
+    if (suggestion?.type === 'site' && suggestion.url) {
+      setIsSearchFocused(false);
+      setSearchSuggestions([]);
+      setActiveSuggestionIndex(-1);
+      window.location.href = suggestion.url;
+      return;
+    }
+
+    // 否则按关键词搜索
+    const keyword = suggestion?.text || suggestion;
     setSearchQuery(keyword);
     setIsSearchFocused(false);
     setSearchSuggestions([]);
@@ -125,6 +169,26 @@ export function useSearch() {
       e.currentTarget.blur();
       return;
     }
+
+    // Tab 键补全
+    if (e.key === 'Tab' && isSearchFocused && searchSuggestions.length > 0) {
+      e.preventDefault();
+      const idx = activeSuggestionIndex >= 0 ? activeSuggestionIndex : 0;
+      const selected = searchSuggestions[idx];
+      if (selected) {
+        if (selected.type === 'site') {
+          // 网站类型：补全名称并高亮
+          setSearchQuery(selected.name);
+          setActiveSuggestionIndex(idx);
+        } else {
+          // 文本类型：补全文本
+          setSearchQuery(selected.text);
+          setActiveSuggestionIndex(idx);
+        }
+      }
+      return;
+    }
+
     if (!isSearchFocused || searchSuggestions.length === 0) return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();

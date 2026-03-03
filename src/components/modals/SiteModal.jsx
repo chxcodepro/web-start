@@ -101,7 +101,11 @@ export default function SiteModal({ isOpen, onClose, onSubmit, onBatchSubmit, in
           <div className="flex gap-2 mb-4">
             <button
               type="button"
-              onClick={() => setIsBatchMode(false)}
+              onClick={() => {
+                // 切换到单个模式时，同步批量模式的分组
+                setFormData(prev => ({ ...prev, group: batchGroup }));
+                setIsBatchMode(false);
+              }}
               className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
                 !isBatchMode
                   ? 'bg-blue-500/30 text-blue-300 border border-blue-500/50'
@@ -112,7 +116,11 @@ export default function SiteModal({ isOpen, onClose, onSubmit, onBatchSubmit, in
             </button>
             <button
               type="button"
-              onClick={() => setIsBatchMode(true)}
+              onClick={() => {
+                // 切换到批量模式时，同步单个模式的分组
+                setBatchGroup(formData.group);
+                setIsBatchMode(true);
+              }}
               className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
                 isBatchMode
                   ? 'bg-violet-500/30 text-violet-300 border border-violet-500/50'

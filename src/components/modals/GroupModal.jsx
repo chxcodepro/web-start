@@ -12,7 +12,6 @@ import {
   DndContext,
   closestCenter,
   pointerWithin,
-  rectIntersection,
   DragOverlay,
   useDroppable,
   PointerSensor,
@@ -25,7 +24,6 @@ import {
   verticalListSortingStrategy,
   rectSortingStrategy,
   useSortable,
-  arrayMove,
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -146,7 +144,14 @@ export default function GroupModal({
       setActiveDragItem({ type: 'group', name: active.id });
     } else if (type === 'site') {
       const site = sites.find(s => s.id === active.id);
-      setActiveDragItem({ type: 'site', site });
+      // 如果拖拽的网站在选中列表中，记录批量拖拽
+      const isBatchDrag = selectedSiteIds.includes(active.id) && selectedSiteIds.length > 1;
+      setActiveDragItem({
+        type: 'site',
+        site,
+        isBatch: isBatchDrag,
+        batchCount: isBatchDrag ? selectedSiteIds.length : 1,
+      });
     }
   };
 
@@ -173,8 +178,15 @@ export default function GroupModal({
     if (active.data.current?.type === 'site' && over.data.current?.type === 'group-drop') {
       const targetGroup = over.data.current.groupName;
       if (targetGroup !== selectedGroup) {
-        onMoveSiteToGroup(active.id, targetGroup);
-        showToast(`已移动到「${targetGroup}」`, 'success');
+        // 如果拖拽的网站在选中列表中，批量移动所有选中的
+        if (selectedSiteIds.includes(active.id) && selectedSiteIds.length > 1) {
+          onMoveSitesToGroup(selectedSiteIds, targetGroup);
+          showToast(`已将 ${selectedSiteIds.length} 个网站移动到「${targetGroup}」`, 'success');
+          setSelectedSiteIds([]);
+        } else {
+          onMoveSiteToGroup(active.id, targetGroup);
+          showToast(`已移动到「${targetGroup}」`, 'success');
+        }
       }
       return;
     }
@@ -401,7 +413,11 @@ export default function GroupModal({
                 </div>
               )}
               {activeDragItem?.type === 'site' && activeDragItem.site && (
-                <DragOverlaySiteCard site={activeDragItem.site} />
+                <DragOverlaySiteCard
+                  site={activeDragItem.site}
+                  isBatch={activeDragItem.isBatch}
+                  batchCount={activeDragItem.batchCount}
+                />
               )}
             </DragOverlay>,
             document.body
@@ -415,7 +431,7 @@ export default function GroupModal({
 /**
  * 拖动预览的网站卡片（带图标）
  */
-function DragOverlaySiteCard({ site }) {
+function DragOverlaySiteCard({ site, isBatch, batchCount }) {
   const [faviconIndex, setFaviconIndex] = useState(0);
   const [imgError, setImgError] = useState(false);
   const imgRef = useRef(null);
@@ -434,23 +450,33 @@ function DragOverlaySiteCard({ site }) {
   };
 
   return (
-    <div className="w-32 bg-white/20 backdrop-blur-xl rounded-xl border border-white/30 shadow-lg flex flex-col items-center justify-center p-3">
-      <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mb-1">
-        {!imgError && faviconUrl ? (
-          <img
-            ref={imgRef}
-            src={faviconUrl}
-            alt=""
-            className="w-5 h-5 object-contain"
-            onError={handleImgError}
-          />
-        ) : (
-          <span className="text-xs font-bold text-white/60">
-            {site.name?.[0]?.toUpperCase() || '?'}
-          </span>
-        )}
+    <div className="relative">
+      {/* 批量拖拽时显示数量徽章 */}
+      {isBatch && batchCount > 1 && (
+        <div className="absolute -top-2 -right-2 z-10 w-6 h-6 bg-indigo-500 rounded-full flex items-center justify-center shadow-lg">
+          <span className="text-xs font-bold text-white">{batchCount}</span>
+        </div>
+      )}
+      <div className="w-32 bg-white/20 backdrop-blur-xl rounded-xl border border-white/30 shadow-lg flex flex-col items-center justify-center p-3">
+        <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mb-1">
+          {!imgError && faviconUrl ? (
+            <img
+              ref={imgRef}
+              src={faviconUrl}
+              alt=""
+              className="w-5 h-5 object-contain"
+              onError={handleImgError}
+            />
+          ) : (
+            <span className="text-xs font-bold text-white/60">
+              {site.name?.[0]?.toUpperCase() || '?'}
+            </span>
+          )}
+        </div>
+        <span className="text-xs text-white truncate max-w-full">
+          {isBatch ? `${batchCount} 个网站` : site.name}
+        </span>
       </div>
-      <span className="text-xs text-white truncate max-w-full">{site.name}</span>
     </div>
   );
 }

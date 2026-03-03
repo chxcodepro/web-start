@@ -3,7 +3,6 @@ import { useState, useMemo, useCallback } from 'react';
 import { Check, AlertTriangle } from 'lucide-react';
 
 // 组件
-import { SiteCard } from './components/SiteCard';
 import {
   LoginModal,
   SiteModal,
@@ -87,8 +86,8 @@ export default function App() {
     handleResetGroups,
   } = stars;
 
-  // Search Hook
-  const search = useSearch();
+  // Search Hook（传入网站列表用于优先匹配）
+  const search = useSearch({ sites: activePage.sites || [] });
   const {
     searchQuery,
     setSearchQuery,
@@ -144,7 +143,6 @@ export default function App() {
     requestDeleteSite,
     addGroup,
     renameGroup,
-    moveGroup,
     requestRemoveGroup,
     reorderGroups,
     moveSiteToGroup,
@@ -254,7 +252,6 @@ export default function App() {
 
       {/* 主内容 */}
       <MainPage
-        bgImage={bgImage}
         isAdmin={isAdmin}
         activePage={activePage}
         // 搜索

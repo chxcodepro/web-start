@@ -7,7 +7,6 @@ import {
   LayoutGrid,
   Image as ImageIcon,
   Search,
-  AlertTriangle,
   Settings,
   Lock,
   LogOut,
@@ -15,6 +14,8 @@ import {
   Upload,
   Star,
   Home,
+  Globe,
+  Clock,
 } from 'lucide-react';
 import {
   DndContext,
@@ -35,7 +36,6 @@ import { SEARCH_ENGINES } from '../utils/constants';
  */
 export default function MainPage({
   // 基础数据
-  bgImage,
   isAdmin,
   activePage,
   // 搜索相关
@@ -284,33 +284,58 @@ function SearchBox({
               placeholder="搜索..."
               className="flex-1 h-12 md:h-14 px-3 md:px-4 bg-transparent text-white placeholder-white/40 text-base md:text-lg focus:outline-none"
             />
-            <button type="submit" className="pr-4 md:pr-5 pl-2 flex items-center text-white/50 hover:text-white transition-colors cursor-pointer">
-              <Search size={20} className="md:w-[22px] md:h-[22px]" />
+            <button type="submit" className="pr-4 md:pr-5 pl-2 flex items-center justify-center text-white/50 hover:text-white transition-colors cursor-pointer">
+              <Search className="w-5 h-5 md:w-[22px] md:h-[22px]" />
             </button>
           </form>
         </div>
         {/* 搜索建议下拉 */}
         {isSearchFocused && searchQuery.trim().length >= 1 && searchSuggestions.length > 0 && (
           <div className="absolute top-full left-0 right-0 mt-3 z-[70] backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden animate-slide-down">
-            {searchSuggestions.map((suggestion, index) => (
-              <button
-                key={suggestion}
-                type="button"
-                onMouseEnter={() => setActiveSuggestionIndex(index)}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  handleSuggestionSelect(suggestion);
-                }}
-                className={`w-full text-left px-5 py-3 text-sm transition-all duration-150 flex items-center gap-3 ${
-                  activeSuggestionIndex === index
-                    ? 'bg-white/20 text-white'
-                    : 'text-white/80 hover:bg-white/10 hover:text-white'
-                }`}
-              >
-                <Search size={14} className="text-white/40" />
-                <span>{suggestion}</span>
-              </button>
-            ))}
+            {searchSuggestions.map((suggestion, index) => {
+              const isSite = suggestion?.type === 'site';
+              const isHistory = suggestion?.type === 'history';
+              const displayText = isSite ? suggestion.name : (suggestion?.text || suggestion);
+              return (
+                <button
+                  key={isSite ? `site-${suggestion.url}` : `text-${index}-${displayText}`}
+                  type="button"
+                  onMouseEnter={() => setActiveSuggestionIndex(index)}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleSuggestionSelect(suggestion);
+                  }}
+                  className={`w-full text-left px-5 py-3 text-sm transition-all duration-150 flex items-center gap-3 ${
+                    activeSuggestionIndex === index
+                      ? 'bg-white/20 text-white'
+                      : 'text-white/80 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  {isSite ? (
+                    <>
+                      {suggestion.logo ? (
+                        <img src={suggestion.logo} alt="" className="w-5 h-5 rounded object-contain" onError={(e) => { e.target.style.display = 'none'; }} />
+                      ) : (
+                        <Globe size={14} className="text-cyan-400" />
+                      )}
+                      <span className="flex-1">{displayText}</span>
+                      <span className="text-xs text-white/40 bg-white/10 px-2 py-0.5 rounded">{suggestion.group}</span>
+                      <span className="text-xs text-cyan-400/70">Tab 补全</span>
+                    </>
+                  ) : isHistory ? (
+                    <>
+                      <Clock size={14} className="text-white/40" />
+                      <span>{displayText}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Search size={14} className="text-white/40" />
+                      <span>{displayText}</span>
+                    </>
+                  )}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
