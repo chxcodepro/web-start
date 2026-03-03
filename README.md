@@ -19,9 +19,7 @@
 
 ## 页面预览
 
-![image-20260303172515706](https://38cf9b9.webp.li/file/1772529938377_6969df088c8c4f56b8f50a6269fdb3f4.png)
 
-![image-20260303172526569](https://38cf9b9.webp.li/file/1772529940596_285942540e554d1a87fe5e3ef7826fdf.png)
 
 ## 功能特性
 
