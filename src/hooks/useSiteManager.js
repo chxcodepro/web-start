@@ -66,10 +66,10 @@ export function useSiteManager({ pages, activePage, isAdmin, isLoading, savePage
 
   // 退出批量模式时清空选择
   useEffect(() => {
-    if (!isBatchMode && selectedSiteIds.length > 0) {
+    if (!isBatchMode) {
       setSelectedSiteIds([]);
     }
-  }, [isBatchMode, selectedSiteIds]);
+  }, [isBatchMode]);
 
   // 页面数据更新函数
   const updateCurrentPageData = (updater) => {

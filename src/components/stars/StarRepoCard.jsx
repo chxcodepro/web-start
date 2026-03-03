@@ -3,8 +3,17 @@ import { useState, useRef, useEffect } from 'react';
 import { Star, ExternalLink, Tag, Package, ChevronDown, Plus, Check, Pin } from 'lucide-react';
 import { formatStarsCount, formatDate, getLanguageColor } from '../../utils/starsHelpers';
 
-// 简单内存缓存，避免重复请求
+// 简单内存缓存，避免重复请求（限制最大 500 条）
 const releaseCache = {};
+const CACHE_MAX_SIZE = 500;
+
+const setReleaseCache = (key, value) => {
+  const keys = Object.keys(releaseCache);
+  if (keys.length >= CACHE_MAX_SIZE) {
+    delete releaseCache[keys[0]];
+  }
+  releaseCache[key] = value;
+};
 
 export default function StarRepoCard({ repo, groups = [], onUpdateRepo }) {
   const [showGroupDropdown, setShowGroupDropdown] = useState(false);
@@ -20,6 +29,9 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo }) {
       setLatestRelease(releaseCache[repo.fullName]);
       return;
     }
+
+    let isMounted = true;
+
     fetch(`https://api.github.com/repos/${repo.fullName}/releases/latest`)
       .then(res => {
         if (res.status === 404) return null;
@@ -28,13 +40,21 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo }) {
       })
       .then(data => {
         const version = data?.tag_name || null;
-        releaseCache[repo.fullName] = version;
-        setLatestRelease(version);
+        setReleaseCache(repo.fullName, version);
+        if (isMounted) {
+          setLatestRelease(version);
+        }
       })
       .catch(() => {
-        releaseCache[repo.fullName] = null;
-        setLatestRelease(null);
+        setReleaseCache(repo.fullName, null);
+        if (isMounted) {
+          setLatestRelease(null);
+        }
       });
+
+    return () => {
+      isMounted = false;
+    };
   }, [repo.fullName]);
 
   // 点击外部关闭下拉框

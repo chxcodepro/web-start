@@ -107,7 +107,7 @@ export function SiteCard({ site, isAdmin, onEdit, onDelete, className = "", isBa
         {!imgError && faviconUrl ? (
           <img ref={imgRef} src={faviconUrl} alt={site.name} className="w-full h-full object-contain drop-shadow-sm" onLoad={handleImgLoad} onError={handleImgError} />
         ) : (
-          <span className="text-lg md:text-xl font-bold text-white/40">{site.name.charAt(0).toUpperCase()}</span>
+          <span className="text-lg md:text-xl font-bold text-white/40">{(site.name?.[0] || '?').toUpperCase()}</span>
         )}
       </div>
       <div className="relative z-10 flex-1 min-w-0 flex flex-col justify-center ml-2 md:ml-3 overflow-hidden pointer-events-none" ref={textContainerRef}>

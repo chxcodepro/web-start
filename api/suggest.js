@@ -31,7 +31,13 @@ export default async function handler(req, res) {
       throw new Error(`HTTP ${response.status}`);
     }
 
-    const data = await response.json();
+    // 安全解析 JSON
+    let data;
+    try {
+      data = await response.json();
+    } catch {
+      throw new Error('Invalid JSON response');
+    }
 
     // 统一返回格式：数组形式的建议列表
     let suggestions = [];
