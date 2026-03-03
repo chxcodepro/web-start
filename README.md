@@ -69,38 +69,15 @@
 
 ---
 
-## 快速开始
+## 快速部署
 
-### 环境要求
+最简单的方式是 Fork 本项目后部署到 Vercel：
 
-- Node.js >= 16
-- npm 或 yarn
+### 1. Fork 项目
 
-### 本地开发
+点击本仓库右上角的 **Fork** 按钮，将项目复制到你的 GitHub 账号下。
 
-```bash
-# 克隆项目
-git clone https://github.com/chxcodepro/web-start.git
-cd web-start
-
-# 安装依赖
-npm install
-
-# 启动开发服务器
-npm run dev
-
-# 构建生产版本
-npm run build
-
-# 预览构建结果
-npm run preview
-```
-
----
-
-## 部署指南
-
-### 1. 配置 Firebase
+### 2. 配置 Firebase
 
 1. 访问 [Firebase 控制台](https://console.firebase.google.com/) 创建项目
 
@@ -118,9 +95,9 @@ npm run preview
    - 点击 Web 图标创建 Web 应用
    - 复制 `firebaseConfig` 配置
 
-5. **配置项目**
+5. **修改配置文件**
 
-   创建 `src/firebase.js` 或修改其中的配置：
+   在你 Fork 的仓库中，修改 `src/firebase.js` 文件中的配置：
 
    ```js
    const firebaseConfig = {
@@ -134,15 +111,17 @@ npm run preview
    };
    ```
 
-### 2. 部署到 Vercel
+### 3. 部署到 Vercel
 
-1. 将项目推送到 GitHub
+1. 访问 [Vercel](https://vercel.com/)，使用 GitHub 账号登录
 
-2. 在 [Vercel](https://vercel.com/) 导入仓库并部署
+2. 点击 **New Project**，导入你 Fork 的仓库
 
-3. **重要**：在 Firebase Authentication 的「已获授权域名」中添加你的 Vercel 域名
+3. 直接点击 **Deploy** 开始部署
 
-### 3. Firestore 安全规则
+4. **重要**：部署完成后，在 Firebase Authentication 的「已获授权域名」中添加你的 Vercel 域名
+
+### 4. 配置 Firestore 安全规则
 
 建议将写权限限制为管理员账号：
 
@@ -157,6 +136,37 @@ service cloud.firestore {
     }
   }
 }
+```
+
+---
+
+## 本地开发
+
+如果你想在本地进行开发或自定义修改：
+
+### 环境要求
+
+- Node.js >= 16
+- npm 或 yarn
+
+### 开发步骤
+
+```bash
+# 克隆项目（或你 Fork 的仓库）
+git clone https://github.com/chxcodepro/web-start.git
+cd web-start
+
+# 安装依赖
+npm install
+
+# 启动开发服务器
+npm run dev
+
+# 构建生产版本
+npm run build
+
+# 预览构建结果
+npm run preview
 ```
 
 ---
