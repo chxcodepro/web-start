@@ -12,26 +12,46 @@ import {
 } from '../utils/favicon';
 
 export function SiteCard({ site, isAdmin, onEdit, onDelete, className = "", isBatchMode = false, isSelected = false, onToggleSelect, isDragging = false }) {
-  const [faviconIndex, setFaviconIndex] = useState(0);
-  const [imgError, setImgError] = useState(false);
-  const [cachedUrl, setCachedUrl] = useState(null);
+  const domain = getDomainFromUrl(site.url || site.innerUrl || '');
+
+  // 同步读取缓存，避免首次渲染发起错误渠道的请求
+  const initialCache = domain ? getCachedFavicon(domain) : null;
+  const [faviconIndex, setFaviconIndex] = useState(() =>
+    initialCache && initialCache.serviceIndex >= 0 ? initialCache.serviceIndex : 0
+  );
+  const [imgError, setImgError] = useState(() =>
+    initialCache?.serviceIndex === -1
+  );
+  const [cachedUrl, setCachedUrl] = useState(() =>
+    initialCache && initialCache.serviceIndex >= 0 ? initialCache.url : null
+  );
   const imgRef = useRef(null);
   const textContainerRef = useRef(null);
   const textRef = useRef(null);
   const [shouldScroll, setShouldScroll] = useState(false);
 
-  const domain = getDomainFromUrl(site.url || site.innerUrl || '');
-
-  // 初始化时检查缓存
+  // domain 变化时重新检查缓存
+  const prevDomainRef = useRef(domain);
   useEffect(() => {
+    if (prevDomainRef.current === domain) return;
+    prevDomainRef.current = domain;
     setImgError(false);
-    setFaviconIndex(0);
     setCachedUrl(null);
     if (domain) {
       const cached = getCachedFavicon(domain);
       if (cached) {
-        setCachedUrl(cached);
+        if (cached.serviceIndex === -1) {
+          setImgError(true);
+          setFaviconIndex(0);
+        } else {
+          setCachedUrl(cached.url);
+          setFaviconIndex(cached.serviceIndex);
+        }
+      } else {
+        setFaviconIndex(0);
       }
+    } else {
+      setFaviconIndex(0);
     }
   }, [domain]);
 
@@ -69,9 +89,9 @@ export function SiteCard({ site, isAdmin, onEdit, onDelete, className = "", isBa
       return;
     }
 
-    // 图标有效，缓存 URL
+    // 图标有效，缓存 URL 和服务索引
     if (!cachedUrl && domain && faviconUrl) {
-      setFaviconCache(domain, faviconUrl);
+      setFaviconCache(domain, faviconUrl, faviconIndex);
       setCachedUrl(faviconUrl);
     }
   };
@@ -86,6 +106,8 @@ export function SiteCard({ site, isAdmin, onEdit, onDelete, className = "", isBa
     } else if (faviconIndex < FAVICON_SERVICES.length - 1) {
       setFaviconIndex(prev => prev + 1);
     } else {
+      // 所有渠道都失败，缓存失败标记，下次直接显示字母图标
+      if (domain) setFaviconCache(domain, '', -1);
       setImgError(true);
     }
   };

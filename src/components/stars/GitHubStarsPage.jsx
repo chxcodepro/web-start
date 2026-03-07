@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import StarRepoCard from './StarRepoCard';
+import GroupSidebar from '../GroupSidebar';
 import {
   searchRepos,
   sortRepos,
@@ -102,6 +103,14 @@ export default function GitHubStarsPage({
       groupCount: allGroups.length,
     };
   }, [repos, filteredRepos, allGroups]);
+
+  // 侧边栏分组数据（仅分组视图）
+  const sidebarGroups = useMemo(() => {
+    if (viewMode !== 'group') return [];
+    return Object.entries(groupedRepos)
+      .filter(([, repos]) => repos.length > 0)
+      .map(([name, repos]) => ({ name, count: repos.length }));
+  }, [groupedRepos, viewMode]);
 
   // 切换分组折叠
   const toggleGroupCollapse = (groupName) => {
@@ -219,7 +228,13 @@ export default function GitHubStarsPage({
 
       {/* 主内容区域 */}
       {isGitHubConfigured && (
-        <div className="container mx-auto px-4 md:px-8 max-w-[1600px] py-6">
+        <div className="flex">
+          <GroupSidebar
+            groups={sidebarGroups}
+            storageKey="stars-sidebar"
+            stickyTop="4rem"
+          />
+          <div className="flex-1 min-w-0 mx-auto px-4 md:px-8 max-w-[1600px] py-6">
           {/* 搜索和筛选栏 */}
           <div className="flex flex-col gap-3 mb-6">
             {/* 搜索框 */}
@@ -283,7 +298,7 @@ export default function GitHubStarsPage({
             <div className="text-center py-16">
               <RefreshCw size={48} className="mx-auto mb-4 text-white/20" />
               <p className="text-white/50">暂无 Stars 数据</p>
-              <p className="text-white/30 text-sm mt-2">点击"同步"按钮获取你的 GitHub Stars</p>
+              <p className="text-white/30 text-sm mt-2">点击&quot;同步&quot;按钮获取你的 GitHub Stars</p>
             </div>
           ) : filteredRepos.length === 0 ? (
             <div className="text-center py-16">
@@ -298,7 +313,7 @@ export default function GitHubStarsPage({
                 const isCollapsed = collapsedGroups[groupName];
 
                 return (
-                  <div key={groupName} className="animate-fade-in group/title">
+                  <div key={groupName} data-group-section={groupName} className="animate-fade-in group/title">
                     {/* 分组标题 */}
                     <div className="flex items-center justify-between mb-3 pb-2 border-b border-white/10">
                       {editingGroup === groupName ? (
@@ -363,6 +378,7 @@ export default function GitHubStarsPage({
                             repo={repo}
                             groups={allGroups}
                             onUpdateRepo={onUpdateRepo}
+                            searchQuery={searchQuery}
                           />
                         ))}
                       </div>
@@ -380,6 +396,7 @@ export default function GitHubStarsPage({
                   repo={repo}
                   groups={allGroups}
                   onUpdateRepo={onUpdateRepo}
+                  searchQuery={searchQuery}
                 />
               ))}
             </div>
@@ -391,6 +408,7 @@ export default function GitHubStarsPage({
               上次同步: {new Date(lastSyncAt).toLocaleString('zh-CN')}
             </div>
           )}
+          </div>
         </div>
       )}
     </div>

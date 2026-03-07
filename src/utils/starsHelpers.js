@@ -109,6 +109,7 @@ export const searchRepos = (repos, query) => {
     const language = (repo.language || '').toLowerCase();
     const topics = (repo.topics || []).join(' ').toLowerCase();
     const group = (repo.group || '').toLowerCase();
+    const note = (repo.note || '').toLowerCase();
 
     return (
       name.includes(keyword) ||
@@ -116,7 +117,8 @@ export const searchRepos = (repos, query) => {
       description.includes(keyword) ||
       language.includes(keyword) ||
       topics.includes(keyword) ||
-      group.includes(keyword)
+      group.includes(keyword) ||
+      note.includes(keyword)
     );
   });
 };

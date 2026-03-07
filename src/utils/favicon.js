@@ -28,10 +28,10 @@ export const getFaviconCache = () => {
 };
 
 // 保存图标缓存
-export const setFaviconCache = (domain, url) => {
+export const setFaviconCache = (domain, url, serviceIndex = 0) => {
   try {
     const cache = getFaviconCache();
-    cache[domain] = { url, time: Date.now() };
+    cache[domain] = { url, serviceIndex, time: Date.now() };
     // 清理过期缓存
     Object.keys(cache).forEach(key => {
       if (Date.now() - cache[key].time > FAVICON_CACHE_EXPIRE) {
@@ -44,12 +44,12 @@ export const setFaviconCache = (domain, url) => {
   }
 };
 
-// 获取缓存的图标URL
+// 获取缓存的图标URL（同时返回成功时的服务索引）
 export const getCachedFavicon = (domain) => {
   const cache = getFaviconCache();
   const item = cache[domain];
   if (item && Date.now() - item.time < FAVICON_CACHE_EXPIRE) {
-    return item.url;
+    return { url: item.url, serviceIndex: item.serviceIndex || 0 };
   }
   return null;
 };

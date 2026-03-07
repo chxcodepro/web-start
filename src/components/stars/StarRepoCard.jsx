@@ -15,10 +15,23 @@ const setReleaseCache = (key, value) => {
   releaseCache[key] = value;
 };
 
-export default function StarRepoCard({ repo, groups = [], onUpdateRepo }) {
+export default function StarRepoCard({ repo, groups = [], onUpdateRepo, searchQuery = '' }) {
   const [showGroupDropdown, setShowGroupDropdown] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [note, setNote] = useState(repo.note || '');
+
+  // 关键词高亮
+  const highlight = (text) => {
+    if (!searchQuery?.trim() || !text) return text;
+    const escaped = searchQuery.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const parts = text.split(new RegExp(`(${escaped})`, 'gi'));
+    if (parts.length === 1) return text;
+    return parts.map((part, i) =>
+      part.toLowerCase() === searchQuery.trim().toLowerCase()
+        ? <mark key={i} className="bg-yellow-400/30 text-yellow-200 rounded-sm px-0.5">{part}</mark>
+        : part
+    );
+  };
   const [latestRelease, setLatestRelease] = useState(undefined); // undefined=未加载, null=无发行版, string=版本号
   const dropdownRef = useRef(null);
 
@@ -128,7 +141,7 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo }) {
           className="flex-1 min-w-0"
         >
           <h4 className="text-sm font-semibold text-white/90 truncate hover:text-cyan-400 transition-colors">
-            {repo.fullName || repo.name}
+            {highlight(repo.fullName || repo.name)}
           </h4>
         </a>
         <a
@@ -144,7 +157,7 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo }) {
       {/* 描述 */}
       {repo.description && (
         <p className="text-xs text-white/50 line-clamp-2 mb-3 leading-relaxed">
-          {repo.description}
+          {highlight(repo.description)}
         </p>
       )}
 
@@ -275,7 +288,7 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo }) {
               key={topic}
               className="px-1.5 py-0.5 bg-blue-500/20 text-blue-300/70 text-[10px] rounded"
             >
-              {topic}
+              {highlight(topic)}
             </span>
           ))}
           {repo.topics.length > 3 && (
