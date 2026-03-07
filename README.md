@@ -128,7 +128,7 @@ service cloud.firestore {
 1. 访问 [Vercel](https://vercel.com/)，使用 GitHub 账号登录
 2. 点击 **New Project**，导入你 Fork 的仓库
 3. 直接点击 **Deploy** 开始部署
-4. **重要**：部署完成后，在 Firebase Authentication 的「已获授权域名」中添加你的 Vercel 域名
+4. **重要**：部署完成后，在 Firebase Authentication 的 设置中「已获授权的网域」中添加你的 Vercel 域名
 
 ---
 

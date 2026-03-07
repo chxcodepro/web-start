@@ -6,8 +6,9 @@ const fetchAllStarredRepos = async (token) => {
   const repos = [];
   let page = 1;
   const perPage = 100;
+  let hasNextPage = true;
 
-  while (true) {
+  while (hasNextPage) {
     const response = await fetch(
       `https://api.github.com/user/starred?per_page=${perPage}&page=${page}`,
       {
@@ -25,18 +26,24 @@ const fetchAllStarredRepos = async (token) => {
     }
 
     const data = await response.json();
-    if (data.length === 0) break;
+    if (data.length === 0) {
+      hasNextPage = false;
+      continue;
+    }
 
     repos.push(...data);
 
     // 检查是否还有下一页
     const linkHeader = response.headers.get('Link');
-    if (!linkHeader || !linkHeader.includes('rel="next"')) break;
+    hasNextPage = !!(linkHeader && linkHeader.includes('rel="next"'));
+    if (!hasNextPage) continue;
 
     page++;
 
     // 安全限制：最多获取 5000 个仓库
-    if (repos.length >= 5000) break;
+    if (repos.length >= 5000) {
+      hasNextPage = false;
+    }
   }
 
   return repos;
