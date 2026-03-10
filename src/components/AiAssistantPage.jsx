@@ -111,6 +111,7 @@ export default function AiAssistantPage({
   const [copiedMessageId, setCopiedMessageId] = useState('');
   const [replayingMessageId, setReplayingMessageId] = useState('');
   const searchPanelRef = useRef(null);
+  const scrollableRef = useRef(null);
   const textareaRef = useRef(null);
   const copiedTimerRef = useRef(0);
 
@@ -139,6 +140,18 @@ export default function AiAssistantPage({
   useEffect(() => () => {
     window.clearTimeout(copiedTimerRef.current);
   }, []);
+
+  useEffect(() => {
+    if (!visible || !scrollableRef.current) return undefined;
+
+    const frameId = window.requestAnimationFrame(() => {
+      scrollableRef.current.scrollTop = scrollableRef.current.scrollHeight;
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [activeConversationId, activeConversation?.messages, streamingConversationId, visible]);
 
   const emptyHint = useMemo(() => {
     if (!isLoggedIn) return '登录后才能使用 AI 助手。';
@@ -369,7 +382,7 @@ export default function AiAssistantPage({
               </div>
             </div>
 
-            <div data-ai-scrollable className="custom-scrollbar flex-1 overflow-y-auto px-4 py-5 md:px-6">
+            <div ref={scrollableRef} data-ai-scrollable className="custom-scrollbar flex-1 overflow-y-auto px-4 py-5 md:px-6">
               {!activeConversation?.messages?.length ? (
                 <div className="flex h-full min-h-[360px] items-center justify-center">
                   <div className="max-w-xl rounded-[30px] border border-white/10 bg-white/[0.06] px-6 py-8 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">

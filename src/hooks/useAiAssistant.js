@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   addDoc,
   collection,
@@ -58,6 +58,7 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
   const [configLoaded, setConfigLoaded] = useState(false);
   const [conversationsLoaded, setConversationsLoaded] = useState(false);
   const [streamingConversationId, setStreamingConversationId] = useState('');
+  const staleStreamingCleanedRef = useRef(false);
 
   const replaceConversation = useCallback((conversationId, updater) => {
     setConversations((prev) => {
@@ -78,6 +79,7 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
 
   useEffect(() => {
     if (!user) {
+      staleStreamingCleanedRef.current = false;
       setAiConfig(DEFAULT_AI_ASSISTANT_CONFIG);
       setConversations([]);
       setActiveConversationId('');
@@ -86,6 +88,7 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
       return undefined;
     }
 
+    staleStreamingCleanedRef.current = false;
     setConfigLoaded(false);
     setConversationsLoaded(false);
 
@@ -184,13 +187,16 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
   }, []);
 
   useEffect(() => {
-    if (!user || streamingConversationId) return;
+    if (!user || !conversationsLoaded || streamingConversationId || staleStreamingCleanedRef.current) return;
 
     const staleConversations = conversations.filter(conversation => (
       Array.isArray(conversation.messages) && conversation.messages.some(message => message?.streaming)
     ));
 
-    if (!staleConversations.length) return;
+    if (!staleConversations.length) {
+      staleStreamingCleanedRef.current = true;
+      return;
+    }
 
     staleConversations.forEach((conversation) => {
       const cleanedMessages = finalizeStreamingMessages(conversation.messages);
@@ -202,7 +208,8 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
         // 忽略收尾失败，下次进入继续清理
       });
     });
-  }, [conversations, replaceConversation, streamingConversationId, updateConversationMessages, user]);
+    staleStreamingCleanedRef.current = true;
+  }, [conversations, conversationsLoaded, replaceConversation, streamingConversationId, updateConversationMessages, user]);
 
   const sendMessage = useCallback(async (text, configOverride = {}, replayMessageId = '') => {
     const content = String(text || '').trim();
