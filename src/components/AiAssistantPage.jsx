@@ -314,7 +314,7 @@ export default function AiAssistantPage({
                       )}
                     </button>
                     {showSearchPanel && (
-                      <div className="absolute left-0 top-full z-20 mt-2 w-[320px] rounded-[24px] border border-white/10 bg-slate-950/95 p-4 shadow-[0_24px_60px_rgba(4,10,25,0.42)] backdrop-blur-2xl">
+                      <div className="absolute bottom-full left-0 z-20 mb-2 w-[320px] rounded-[24px] border border-white/10 bg-slate-950/95 p-4 shadow-[0_24px_60px_rgba(4,10,25,0.42)] backdrop-blur-2xl">
                         <div className="flex items-center justify-between gap-3">
                           <span className="text-sm font-medium text-white/88">联网搜索</span>
                           <button

@@ -14,6 +14,7 @@ export default function AiAssistantSettingsModal({
   const [fetchingModels, setFetchingModels] = useState(false);
   const [availableModels, setAvailableModels] = useState([]);
   const [fetchError, setFetchError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (initialConfig) {
@@ -52,20 +53,32 @@ export default function AiAssistantSettingsModal({
   };
 
   const handleSave = async () => {
-    await onSave?.(formData);
-    onClose();
+    if (saving) return;
+    setSaving(true);
+    try {
+      await onSave?.(formData);
+      onClose();
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <div className="fixed inset-0 z-[95] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={() => {
+        if (!saving) onClose();
+      }} />
       <div className="relative z-10 w-full max-w-2xl overflow-hidden rounded-[28px] border border-white/15 bg-white/[0.12] shadow-[0_30px_80px_rgba(4,10,25,0.45)] backdrop-blur-2xl">
         <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.06] px-5 py-4">
           <h2 className="flex items-center gap-2 text-xl font-bold text-white">
             <Bot size={18} />
             AI 助手设置
           </h2>
-          <button onClick={onClose} className="rounded-full p-2 text-white/45 transition hover:bg-white/10 hover:text-white">
+          <button
+            onClick={onClose}
+            disabled={saving}
+            className="rounded-full p-2 text-white/45 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+          >
             <X size={18} />
           </button>
         </div>
@@ -112,7 +125,7 @@ export default function AiAssistantSettingsModal({
                 <button
                   type="button"
                   onClick={handleFetchModels}
-                  disabled={fetchingModels || !canFetchModels}
+                  disabled={saving || fetchingModels || !canFetchModels}
                   className="inline-flex items-center gap-1 rounded-full border border-cyan-400/20 bg-cyan-500/10 px-3 py-1 text-xs text-cyan-200 transition hover:bg-cyan-500/20 disabled:opacity-50"
                 >
                   {fetchingModels ? <Loader2 size={12} className="animate-spin" /> : <Search size={12} />}
@@ -158,10 +171,11 @@ export default function AiAssistantSettingsModal({
           <button
             type="button"
             onClick={handleSave}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-500/80 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-400"
+            disabled={saving}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-500/80 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <Save size={15} />
-            直接保存
+            {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+            {saving ? '保存中...' : '直接保存'}
           </button>
         </div>
       </div>
