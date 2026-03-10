@@ -68,8 +68,8 @@ export default function AiAssistantSettingsModal({
       <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={() => {
         if (!saving) onClose();
       }} />
-      <div className="relative z-10 w-full max-w-2xl overflow-hidden rounded-[28px] border border-white/15 bg-white/[0.12] shadow-[0_30px_80px_rgba(4,10,25,0.45)] backdrop-blur-2xl">
-        <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.06] px-5 py-4">
+      <div className="relative z-10 w-full max-w-xl overflow-hidden rounded-[26px] border border-white/15 bg-white/[0.12] shadow-[0_26px_70px_rgba(4,10,25,0.42)] backdrop-blur-2xl">
+        <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.06] px-4 py-3.5">
           <h2 className="flex items-center gap-2 text-xl font-bold text-white">
             <Bot size={18} />
             AI 助手设置
@@ -83,7 +83,7 @@ export default function AiAssistantSettingsModal({
           </button>
         </div>
 
-        <div className="custom-scrollbar max-h-[70vh] space-y-5 overflow-y-auto p-5">
+        <div className="custom-scrollbar max-h-[68vh] space-y-4 overflow-y-auto p-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="md:col-span-2">
               <label className="mb-1.5 ml-1 block text-xs font-medium text-white/55">接口地址</label>
@@ -120,37 +120,37 @@ export default function AiAssistantSettingsModal({
             </div>
 
             <div className="md:col-span-2">
-              <div className="mb-1.5 flex items-center justify-between">
-                <label className="ml-1 block text-xs font-medium text-white/55">模型</label>
+              <label className="mb-1.5 ml-1 block text-xs font-medium text-white/55">模型</label>
+              <div className="flex items-center gap-2">
+                {availableModels.length > 0 ? (
+                  <select
+                    value={formData.model}
+                    onChange={(e) => updateFormData(prev => ({ ...prev, model: e.target.value }))}
+                    className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl focus:border-cyan-400/70 focus:bg-white/[0.12] focus:outline-none [&>option]:bg-slate-900"
+                  >
+                    {availableModels.map(model => (
+                      <option key={model} value={model}>{model}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={formData.model}
+                    onChange={(e) => updateFormData(prev => ({ ...prev, model: e.target.value }))}
+                    placeholder="gpt-4o-mini"
+                    className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl focus:border-cyan-400/70 focus:bg-white/[0.12] focus:outline-none"
+                  />
+                )}
                 <button
                   type="button"
                   onClick={handleFetchModels}
                   disabled={saving || fetchingModels || !canFetchModels}
-                  className="inline-flex items-center gap-1 rounded-full border border-cyan-400/20 bg-cyan-500/10 px-3 py-1 text-xs text-cyan-200 transition hover:bg-cyan-500/20 disabled:opacity-50"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-2xl border border-cyan-400/20 bg-cyan-500/10 px-3.5 py-2.5 text-xs text-cyan-200 transition hover:bg-cyan-500/20 disabled:opacity-50"
                 >
                   {fetchingModels ? <Loader2 size={12} className="animate-spin" /> : <Search size={12} />}
                   一键获取模型
                 </button>
               </div>
-              {availableModels.length > 0 ? (
-                <select
-                  value={formData.model}
-                  onChange={(e) => updateFormData(prev => ({ ...prev, model: e.target.value }))}
-                  className="w-full rounded-2xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl focus:border-cyan-400/70 focus:bg-white/[0.12] focus:outline-none [&>option]:bg-slate-900"
-                >
-                  {availableModels.map(model => (
-                    <option key={model} value={model}>{model}</option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  type="text"
-                  value={formData.model}
-                  onChange={(e) => updateFormData(prev => ({ ...prev, model: e.target.value }))}
-                  placeholder="gpt-4o-mini"
-                  className="w-full rounded-2xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl focus:border-cyan-400/70 focus:bg-white/[0.12] focus:outline-none"
-                />
-              )}
               {fetchError && <p className="mt-2 ml-1 text-xs text-red-300">{fetchError}</p>}
             </div>
           </div>
@@ -160,14 +160,14 @@ export default function AiAssistantSettingsModal({
             <textarea
               value={formData.systemPrompt}
               onChange={(e) => updateFormData(prev => ({ ...prev, systemPrompt: e.target.value }))}
-              rows={8}
+              rows={7}
               placeholder="你是我的私人 AI 助手..."
               className="w-full resize-none rounded-[24px] border border-white/10 bg-white/[0.08] px-4 py-3 text-sm leading-6 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl focus:border-cyan-400/70 focus:bg-white/[0.12] focus:outline-none"
             />
           </div>
         </div>
 
-        <div className="border-t border-white/10 bg-white/[0.04] px-5 py-4">
+        <div className="border-t border-white/10 bg-white/[0.04] px-4 py-3.5">
           <button
             type="button"
             onClick={handleSave}

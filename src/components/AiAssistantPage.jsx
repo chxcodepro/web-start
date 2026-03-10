@@ -395,7 +395,7 @@ export default function AiAssistantPage({
                         <div className="break-words text-sm leading-7">
                           {message.content ? (
                             <MarkdownMessage content={message.content} />
-                          ) : message.role === 'assistant' && message.streaming && streamingConversationId === activeConversationId ? (
+                          ) : message.role === 'assistant' && message.streaming ? (
                             <StreamingDots />
                           ) : '...'}
                         </div>
