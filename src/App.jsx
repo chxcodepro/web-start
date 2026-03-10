@@ -6,6 +6,7 @@ import { Check, AlertTriangle } from 'lucide-react';
 import LoadingPage from './components/LoadingPage';
 import MainPage from './components/MainPage';
 import VersionTag from './components/VersionTag';
+import AiAssistantSettingsModal from './components/modals/AiAssistantSettingsModal';
 
 // Hooks
 import { useFirebase } from './hooks/useFirebase';
@@ -29,7 +30,6 @@ const GroupModal = lazy(() => import('./components/modals/GroupModal'));
 const ImportModal = lazy(() => import('./components/modals/ImportModal'));
 const WebDavModal = lazy(() => import('./components/modals/WebDavModal'));
 const GitHubStarsSettingsModal = lazy(() => import('./components/modals/GitHubStarsSettingsModal'));
-const AiAssistantSettingsModal = lazy(() => import('./components/modals/AiAssistantSettingsModal'));
 const AiAssistantPage = lazy(() => import('./components/AiAssistantPage'));
 const GitHubStarsPage = lazy(() => import('./components/stars/GitHubStarsPage'));
 
