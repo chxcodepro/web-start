@@ -1,5 +1,5 @@
 // 主应用组件
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Check, AlertTriangle } from 'lucide-react';
 
 // 组件
@@ -34,6 +34,14 @@ import { globalStyles } from './styles/globalStyles';
 export default function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isBgModalOpen, setIsBgModalOpen] = useState(false);
+  const [isAdminExitDialogOpen, setIsAdminExitDialogOpen] = useState(false);
+  const [adminHidden, setAdminHidden] = useState(() => {
+    try {
+      return localStorage.getItem('my-nav-admin-hidden') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
   // Toast 提示函数（使用 useCallback 保持引用稳定，避免触发下游 Hook 重复执行）
@@ -49,7 +57,6 @@ export default function App() {
     setPages,
     isLoading,
     user,
-    isAdmin,
     bgImage,
     setBgImage,
     savePagesToCloud,
@@ -57,6 +64,43 @@ export default function App() {
     handleLogout,
     getApiAuthHeaders,
   } = firebase;
+  const hasLoginSession = !!user;
+  const isAdminVisible = hasLoginSession && !adminHidden;
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('my-nav-admin-hidden', String(adminHidden));
+    } catch {
+      // 忽略
+    }
+  }, [adminHidden]);
+
+  useEffect(() => {
+    if (!hasLoginSession && adminHidden) {
+      setAdminHidden(false);
+    }
+  }, [hasLoginSession, adminHidden]);
+
+  const handleHideAdmin = useCallback(() => {
+    setAdminHidden(true);
+    setIsAdminExitDialogOpen(false);
+    showToast('已隐藏管理员模式');
+  }, [showToast]);
+
+  const handleShowAdmin = useCallback(() => {
+    setAdminHidden(false);
+    showToast('已显示管理员模式');
+  }, [showToast]);
+
+  const handleRequestAdminExit = useCallback(() => {
+    setIsAdminExitDialogOpen(true);
+  }, []);
+
+  const handleConfirmLogout = useCallback(async () => {
+    setIsAdminExitDialogOpen(false);
+    setAdminHidden(false);
+    await handleLogout();
+  }, [handleLogout]);
 
   // 合并页面数据
   const activePage = useMemo(() => {
@@ -110,7 +154,7 @@ export default function App() {
   const siteManager = useSiteManager({
     pages,
     activePage,
-    isAdmin,
+    isAdmin: isAdminVisible,
     isLoading,
     savePagesToCloud,
     showToast,
@@ -157,7 +201,7 @@ export default function App() {
 
   // WebDAV Hook
   const webdav = useWebDav({
-    isAdmin,
+    isAdmin: isAdminVisible,
     activePage,
     bgImage,
     setPages,
@@ -252,7 +296,8 @@ export default function App() {
 
       {/* 主内容 */}
       <MainPage
-        isAdmin={isAdmin}
+        isAdmin={isAdminVisible}
+        hasLoginSession={hasLoginSession}
         activePage={activePage}
         // 搜索
         searchQuery={searchQuery}
@@ -303,7 +348,8 @@ export default function App() {
         setShowStarsPage={setShowStarsPage}
         showStarsPage={showStarsPage}
         importInputRef={importInputRef}
-        handleLogout={handleLogout}
+        handleShowAdmin={handleShowAdmin}
+        handleRequestAdminExit={handleRequestAdminExit}
       />
 
       {/* 隐藏的文件上传 */}
@@ -395,11 +441,49 @@ export default function App() {
         </div>
       )}
 
+      {isAdminExitDialogOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-md animate-[fadeInUp_0.2s_ease-out]"
+            onClick={() => setIsAdminExitDialogOpen(false)}
+          />
+          <div className="relative z-10 backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl w-full max-w-sm p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)] animate-fade-in-scale">
+            <div className="flex flex-col items-center text-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-300">
+                <AlertTriangle size={24} />
+              </div>
+              <h3 className="text-lg font-bold text-white">管理员模式</h3>
+              <p className="text-white/70 text-sm">你要先隐藏管理员模式，还是直接退出登录？</p>
+              <div className="grid grid-cols-1 gap-3 w-full mt-2">
+                <button
+                  onClick={handleHideAdmin}
+                  className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white transition font-medium btn-press"
+                >
+                  隐藏
+                </button>
+                <button
+                  onClick={handleConfirmLogout}
+                  className="w-full py-2.5 rounded-xl bg-red-600/90 hover:bg-red-500 text-white transition font-medium shadow-lg shadow-red-900/30 btn-press"
+                >
+                  退出
+                </button>
+                <button
+                  onClick={() => setIsAdminExitDialogOpen(false)}
+                  className="w-full py-2.5 rounded-xl bg-transparent text-white/60 hover:text-white transition font-medium"
+                >
+                  取消
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Toast 提示 */}
       <ToastMessage toast={toast} />
 
       {/* 版本标签 */}
-      <VersionTag isAdmin={isAdmin} />
+      <VersionTag isAdmin={isAdminVisible} />
     </div>
   );
 }

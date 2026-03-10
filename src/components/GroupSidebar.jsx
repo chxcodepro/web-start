@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Layers, X } from 'lucide-react';
+import { Layers, Pin, PinOff, X } from 'lucide-react';
 
 /**
  * 通用分组导航侧边栏
@@ -13,19 +13,25 @@ export default function GroupSidebar({
   paddingTop = '0px',
   scrollOffset = 80,
 }) {
-  const [collapsed, setCollapsed] = useState(() => {
+  const [fixedOpen, setFixedOpen] = useState(() => {
     try {
-      return localStorage.getItem(`${storageKey}-collapsed`) === 'true';
+      return localStorage.getItem(`${storageKey}-fixed`) === 'true';
     } catch { return false; }
   });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeGroup, setActiveGroup] = useState('');
+  const [hovered, setHovered] = useState(false);
   const observerRef = useRef(null);
+  const expanded = fixedOpen || hovered;
 
-  // 持久化折叠状态
+  // 持久化固定状态
   useEffect(() => {
-    try { localStorage.setItem(`${storageKey}-collapsed`, String(collapsed)); } catch {}
-  }, [collapsed, storageKey]);
+    try {
+      localStorage.setItem(`${storageKey}-fixed`, String(fixedOpen));
+    } catch {
+      // 忽略本地存储异常
+    }
+  }, [fixedOpen, storageKey]);
 
   // IntersectionObserver 检测当前可见分组
   useEffect(() => {
@@ -147,38 +153,43 @@ export default function GroupSidebar({
       {/* 桌面端 sticky 侧边栏 */}
       <div
         className={`hidden md:flex flex-col shrink-0 sticky backdrop-blur-xl bg-gray-900/40 border-r border-white/10 transition-all duration-300 z-20 ${
-          collapsed ? 'w-10' : 'w-48'
+          expanded ? 'w-48' : 'w-10'
         }`}
         style={{
           top: stickyTop,
           height: `calc(100vh - ${stickyTop})`,
           paddingTop: paddingTop,
         }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
       >
-        {collapsed ? (
-          <div className="flex flex-col items-center pt-2">
-            <button
-              onClick={() => setCollapsed(false)}
-              className="p-1.5 hover:bg-white/10 rounded-lg text-white/40 hover:text-white transition"
-              title="展开分组导航"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        ) : (
+        {expanded ? (
           <>
             <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/10 shrink-0">
               <span className="text-[11px] font-bold text-white/40 tracking-wider">分组导航</span>
               <button
-                onClick={() => setCollapsed(true)}
-                className="p-1 hover:bg-white/10 rounded-lg text-white/40 hover:text-white transition"
-                title="折叠侧边栏"
+                onClick={() => setFixedOpen(prev => !prev)}
+                className={`p-1 rounded-lg transition ${
+                  fixedOpen
+                    ? 'bg-cyan-500/15 text-cyan-300 hover:bg-cyan-500/25'
+                    : 'text-white/40 hover:bg-white/10 hover:text-white'
+                }`}
+                title={fixedOpen ? '取消固定' : '固定侧边栏'}
               >
-                <ChevronLeft size={14} />
+                {fixedOpen ? <PinOff size={14} /> : <Pin size={14} />}
               </button>
             </div>
             {renderGroupList()}
           </>
+        ) : (
+          <div className="flex flex-col items-center pt-2">
+            <div
+              className="p-1.5 rounded-lg text-white/30"
+              title="鼠标移入展开分组导航"
+            >
+              <Layers size={16} />
+            </div>
+          </div>
         )}
       </div>
     </>

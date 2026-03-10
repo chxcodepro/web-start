@@ -37,6 +37,7 @@ import { SEARCH_ENGINES } from '../utils/constants';
 export default function MainPage({
   // 基础数据
   isAdmin,
+  hasLoginSession,
   activePage,
   // 搜索相关
   searchQuery,
@@ -87,7 +88,8 @@ export default function MainPage({
   setShowStarsPage,
   showStarsPage,
   importInputRef,
-  handleLogout,
+  handleShowAdmin,
+  handleRequestAdminExit,
 }) {
   return (
     <>
@@ -184,6 +186,7 @@ export default function MainPage({
         {/* 浮动操作按钮 */}
         <FloatingButtons
           isAdmin={isAdmin}
+          hasLoginSession={hasLoginSession}
           isBatchMode={isBatchMode}
           setIsBatchMode={setIsBatchMode}
           selectedSiteIds={selectedSiteIds}
@@ -197,7 +200,8 @@ export default function MainPage({
           importInputRef={importInputRef}
           setEditingSite={setEditingSite}
           setIsModalOpen={setIsModalOpen}
-          handleLogout={handleLogout}
+          handleShowAdmin={handleShowAdmin}
+          handleRequestAdminExit={handleRequestAdminExit}
         />
       </div>
     </>
@@ -534,6 +538,7 @@ function SiteGroups({
  */
 function FloatingButtons({
   isAdmin,
+  hasLoginSession,
   isBatchMode,
   setIsBatchMode,
   selectedSiteIds,
@@ -547,14 +552,21 @@ function FloatingButtons({
   importInputRef,
   setEditingSite,
   setIsModalOpen,
-  handleLogout,
+  handleShowAdmin,
+  handleRequestAdminExit,
 }) {
   return (
     <div className="fixed bottom-6 right-4 md:bottom-8 md:right-8 flex flex-col gap-2 md:gap-3 z-40 animate-slide-in-right">
       {!isAdmin ? (
-        <button onClick={() => setIsLoginModalOpen(true)} className="w-11 h-11 md:w-12 md:h-12 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-full shadow-lg backdrop-blur-sm flex items-center justify-center transition-all border border-white/10 btn-press animate-float" title="管理员登录">
-          <Lock size={18} className="md:w-5 md:h-5" />
-        </button>
+        hasLoginSession ? (
+          <button onClick={handleShowAdmin} className="w-11 h-11 md:w-12 md:h-12 bg-emerald-600/90 hover:bg-emerald-500 text-white rounded-full shadow-lg shadow-emerald-900/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press animate-float" title="显示管理员">
+            <User size={18} className="md:w-5 md:h-5" />
+          </button>
+        ) : (
+          <button onClick={() => setIsLoginModalOpen(true)} className="w-11 h-11 md:w-12 md:h-12 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-full shadow-lg backdrop-blur-sm flex items-center justify-center transition-all border border-white/10 btn-press animate-float" title="管理员登录">
+            <Lock size={18} className="md:w-5 md:h-5" />
+          </button>
+        )
       ) : (
         <>
           <button onClick={() => setIsGroupModalOpen(true)} className="w-11 h-11 md:w-12 md:h-12 bg-indigo-600/90 hover:bg-indigo-500 text-white rounded-full shadow-lg shadow-indigo-900/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press" title="管理分组"><LayoutGrid size={16} className="md:w-[18px] md:h-[18px]" /></button>
@@ -569,7 +581,7 @@ function FloatingButtons({
             </>
           )}
           <button onClick={() => { setEditingSite(null); setIsModalOpen(true); }} className="w-11 h-11 md:w-12 md:h-12 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg shadow-blue-900/50 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press animate-pulse-glow" title="添加站点"><Plus size={18} className="md:w-5 md:h-5" /></button>
-          <button onClick={handleLogout} className="w-11 h-11 md:w-12 md:h-12 bg-red-600/80 hover:bg-red-500 text-white rounded-full shadow-lg shadow-red-900/30 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press" title="退出登录"><LogOut size={16} className="md:w-[18px] md:h-[18px]" /></button>
+          <button onClick={handleRequestAdminExit} className="w-11 h-11 md:w-12 md:h-12 bg-red-600/80 hover:bg-red-500 text-white rounded-full shadow-lg shadow-red-900/30 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm btn-press" title="隐藏或退出"><LogOut size={16} className="md:w-[18px] md:h-[18px]" /></button>
         </>
       )}
     </div>
