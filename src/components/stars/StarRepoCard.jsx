@@ -118,7 +118,7 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo, searchQu
   };
 
   return (
-    <div className={`group relative bg-white/5 hover:bg-white/10 backdrop-blur-md rounded-2xl transition-all duration-300 p-3 md:p-4 border border-white/20 hover:border-white/30 ${showGroupDropdown ? 'z-[60]' : ''}`}>
+    <div className={`group relative rounded-2xl border border-white/10 bg-white/[0.12] p-3 transition-all duration-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_54px_rgba(5,10,25,0.24)] backdrop-blur-2xl hover:bg-white/[0.15] hover:border-white/15 md:p-4 ${showGroupDropdown ? 'z-[60]' : ''}`}>
       {/* 置顶按钮 */}
       <button
         onClick={handleTogglePin}
@@ -194,8 +194,8 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo, searchQu
           onClick={() => setShowGroupDropdown(!showGroupDropdown)}
           className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-lg transition ${
             repo.group
-              ? 'bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400'
-              : 'bg-white/10 hover:bg-white/20 text-white/50 hover:text-white/70 border border-dashed border-white/20'
+              ? 'border border-cyan-400/20 bg-cyan-500/15 text-cyan-300 hover:bg-cyan-500/25'
+              : 'border border-dashed border-white/15 bg-white/[0.08] text-white/50 hover:bg-white/[0.14] hover:text-white/70'
           }`}
         >
           <Tag size={10} />
@@ -205,7 +205,7 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo, searchQu
 
         {/* 下拉选择框（向下弹出） */}
         {showGroupDropdown && (
-          <div className="absolute left-0 top-full mt-1 z-[100] bg-gray-800 border border-white/20 rounded-xl shadow-xl min-w-[160px] py-1 animate-fade-in">
+          <div className="absolute left-0 top-full z-[100] mt-1 min-w-[160px] rounded-xl border border-white/10 bg-white/[0.12] py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_54px_rgba(5,10,25,0.32)] backdrop-blur-2xl animate-fade-in">
             {/* 新建分组输入 */}
             <div className="px-2 py-1.5 border-b border-white/10">
               <div className="flex items-center gap-1">
@@ -215,7 +215,7 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo, searchQu
                   onChange={(e) => setNewGroupName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleCreateGroup()}
                   placeholder="新建分组..."
-                  className="flex-1 bg-white/10 border-none rounded px-2 py-1 text-xs text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                  className="flex-1 rounded border-none bg-white/[0.08] px-2 py-1 text-xs text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                   autoFocus
                 />
                 {newGroupName.trim() && (
@@ -235,7 +235,7 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo, searchQu
               {repo.group && (
                 <button
                   onClick={() => handleSelectGroup('')}
-                  className="w-full px-3 py-1.5 text-left text-xs text-white/50 hover:bg-white/10 transition flex items-center gap-2"
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-white/50 transition hover:bg-white/[0.1]"
                 >
                   取消分组
                 </button>
@@ -244,10 +244,10 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo, searchQu
                 <button
                   key={g}
                   onClick={() => handleSelectGroup(g)}
-                  className={`w-full px-3 py-1.5 text-left text-xs transition flex items-center justify-between ${
+                  className={`flex w-full items-center justify-between px-3 py-1.5 text-left text-xs transition ${
                     repo.group === g
-                      ? 'bg-cyan-500/20 text-cyan-400'
-                      : 'text-white/70 hover:bg-white/10'
+                      ? 'bg-cyan-500/15 text-cyan-300'
+                      : 'text-white/70 hover:bg-white/[0.1]'
                   }`}
                 >
                   {g}
