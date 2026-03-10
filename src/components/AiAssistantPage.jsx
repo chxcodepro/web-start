@@ -73,6 +73,20 @@ function MarkdownMessage({ content }) {
   );
 }
 
+function StreamingDots() {
+  return (
+    <div className="flex items-center gap-1 py-1.5">
+      {[0, 1, 2].map((index) => (
+        <span
+          key={index}
+          className="h-2 w-2 rounded-full bg-white/70 animate-[bounce_1s_infinite]"
+          style={{ animationDelay: `${index * 0.15}s` }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function AiAssistantPage({
   visible,
   onClose,
@@ -267,7 +281,7 @@ export default function AiAssistantPage({
                     if (!isLoggedIn) return onRequireLogin?.();
                     onCreateConversation?.();
                   }}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.08] px-3 py-2 text-sm text-white/80 transition hover:bg-white/[0.14] hover:text-white"
+                  className="inline-flex min-w-[132px] items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/[0.14] hover:text-white"
                 >
                   <MessageSquarePlus size={15} />
                   新建话题
@@ -331,7 +345,7 @@ export default function AiAssistantPage({
                     if (!isLoggedIn) return onRequireLogin?.();
                     onCreateConversation?.();
                   }}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.08] px-3 py-2 text-sm text-white/80 transition hover:bg-white/[0.14] hover:text-white"
+                  className="inline-flex min-w-[132px] items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/[0.14] hover:text-white"
                 >
                   <MessageSquarePlus size={15} />
                   新建话题
@@ -379,7 +393,11 @@ export default function AiAssistantPage({
                           : 'border-white/10 bg-white/[0.07] text-white/85'
                       }`}>
                         <div className="break-words text-sm leading-7">
-                          {message.content ? <MarkdownMessage content={message.content} /> : '...'}
+                          {message.content ? (
+                            <MarkdownMessage content={message.content} />
+                          ) : message.role === 'assistant' && message.streaming ? (
+                            <StreamingDots />
+                          ) : '...'}
                         </div>
                         <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-white/45">
                           <button
