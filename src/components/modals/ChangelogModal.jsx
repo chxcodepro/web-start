@@ -1,6 +1,8 @@
 // 更新日志弹窗组件
 import { useState, useEffect } from 'react';
 import { X, FileText, Github } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { APP_VERSION } from '../../utils/constants';
 
 // GitHub 仓库地址
@@ -53,7 +55,41 @@ export default function ChangelogModal({ isOpen, onClose }) {
             </div>
           ) : (
             <div className="prose prose-invert prose-sm max-w-none">
-              <ChangelogContent content={changelog} />
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  h1: () => null,
+                  h2: ({ children }) => (
+                    <h2 className="text-lg font-bold text-emerald-400 mt-4 mb-3 flex items-center gap-2">
+                      <span className="w-2 h-2 bg-emerald-400 rounded-full" />
+                      {children}
+                    </h2>
+                  ),
+                  h3: ({ children }) => (
+                    <h3 className="text-sm font-medium text-white/60 mt-4 mb-2">{children}</h3>
+                  ),
+                  ul: ({ children }) => <ul className="pl-2 space-y-1.5">{children}</ul>,
+                  li: ({ children }) => (
+                    <li className="flex items-start gap-2 text-white/80 text-sm">
+                      <span className="text-white/40 mt-1 shrink-0">•</span>
+                      <span>{children}</span>
+                    </li>
+                  ),
+                  p: ({ children }) => <p className="text-white/70 text-sm mb-2">{children}</p>,
+                  strong: ({ children }) => <strong className="text-white font-semibold">{children}</strong>,
+                  code: ({ children }) => (
+                    <code className="bg-white/10 px-1.5 py-0.5 rounded text-xs text-emerald-300">{children}</code>
+                  ),
+                  hr: () => <hr className="border-white/10 my-4" />,
+                  a: ({ href, children }) => (
+                    <a href={href} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 underline">
+                      {children}
+                    </a>
+                  ),
+                }}
+              >
+                {changelog}
+              </ReactMarkdown>
             </div>
           )}
         </div>
@@ -73,49 +109,4 @@ export default function ChangelogModal({ isOpen, onClose }) {
       </div>
     </div>
   );
-}
-
-// 解析并渲染 Markdown 内容
-function ChangelogContent({ content }) {
-  const lines = content.split('\n');
-  const elements = [];
-
-  lines.forEach((line, index) => {
-    if (line.startsWith('# ')) {
-      // 主标题 - 跳过，已在标题栏显示
-      return;
-    } else if (line.startsWith('## ')) {
-      // 版本号
-      elements.push(
-        <h2 key={index} className="text-lg font-bold text-emerald-400 mt-4 mb-3 flex items-center gap-2">
-          <span className="w-2 h-2 bg-emerald-400 rounded-full" />
-          {line.slice(3)}
-        </h2>
-      );
-    } else if (line.startsWith('### ')) {
-      // 日期
-      elements.push(
-        <h3 key={index} className="text-sm font-medium text-white/60 mt-4 mb-2">
-          {line.slice(4)}
-        </h3>
-      );
-    } else if (line.startsWith('- ')) {
-      // 列表项
-      elements.push(
-        <div key={index} className="flex items-start gap-2 text-white/80 text-sm mb-1.5 pl-2">
-          <span className="text-white/40 mt-1">•</span>
-          <span>{line.slice(2)}</span>
-        </div>
-      );
-    } else if (line.trim()) {
-      // 普通文本
-      elements.push(
-        <p key={index} className="text-white/70 text-sm mb-2">
-          {line}
-        </p>
-      );
-    }
-  });
-
-  return <>{elements}</>;
 }

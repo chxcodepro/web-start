@@ -291,6 +291,8 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
     let assistantSources = [];
     let lastPersistAt = Date.now();
     let persistChain = Promise.resolve();
+    let bufferedDelta = '';
+    let flushDeltaTimer = 0;
 
     const buildMessagesSnapshot = (extra = {}) => draftMessages.map(item => (
       item.id === assistantMessageId
@@ -308,6 +310,25 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
         .catch(() => {})
         .then(() => updateConversationMessages(conversationId, messages, nextTitle));
       return persistChain;
+    };
+
+    const flushBufferedDelta = () => {
+      if (!bufferedDelta) return;
+      assistantContent += bufferedDelta;
+      bufferedDelta = '';
+      applyLocalConversation(buildMessagesSnapshot({ streaming: true }));
+      if (Date.now() - lastPersistAt >= 600) {
+        lastPersistAt = Date.now();
+        void queuePersist(buildMessagesSnapshot({ streaming: true }));
+      }
+    };
+
+    const scheduleDeltaFlush = () => {
+      if (flushDeltaTimer) return;
+      flushDeltaTimer = globalThis.setTimeout(() => {
+        flushDeltaTimer = 0;
+        flushBufferedDelta();
+      }, 48);
     };
 
     try {
@@ -356,18 +377,20 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
             applyLocalConversation(buildMessagesSnapshot({ streaming: true }));
           }
           if (event.type === 'delta' && event.data) {
-            assistantContent += event.data;
-            applyLocalConversation(buildMessagesSnapshot({ streaming: true }));
-            if (Date.now() - lastPersistAt >= 600) {
-              lastPersistAt = Date.now();
-              void queuePersist(buildMessagesSnapshot({ streaming: true }));
-            }
+            bufferedDelta += event.data;
+            scheduleDeltaFlush();
           }
           if (event.type === 'error') {
             throw new Error(event.data || 'AI 助手请求失败');
           }
         });
       }
+
+      if (flushDeltaTimer) {
+        globalThis.clearTimeout(flushDeltaTimer);
+        flushDeltaTimer = 0;
+      }
+      flushBufferedDelta();
 
       const finalMessages = buildMessagesSnapshot({
         content: assistantContent || '没有收到有效回复',
@@ -378,6 +401,11 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
       applyLocalConversation(finalMessages);
       await queuePersist(finalMessages);
     } catch (error) {
+      if (flushDeltaTimer) {
+        globalThis.clearTimeout(flushDeltaTimer);
+        flushDeltaTimer = 0;
+      }
+      flushBufferedDelta();
       const fallbackContent = error?.message || '请求失败，请稍后重试。';
       const finalMessages = buildMessagesSnapshot({
         content: assistantContent || fallbackContent,

@@ -40,6 +40,54 @@ const pickSearchConfig = (config = {}) => ({
   searchApiKey: String(config.searchApiKey || ''),
 });
 
+const splitStreamingMarkdown = (content = '') => {
+  const text = String(content || '');
+  if (!text) {
+    return {
+      renderedContent: '',
+      pendingContent: '',
+    };
+  }
+
+  const lines = text.split('\n');
+  let inFence = false;
+  let cursor = 0;
+  let lastSafeIndex = 0;
+
+  lines.forEach((line, index) => {
+    const chunk = index < lines.length - 1 ? `${line}\n` : line;
+    cursor += chunk.length;
+
+    if (/^\s*```/.test(line)) {
+      inFence = !inFence;
+      if (!inFence) {
+        lastSafeIndex = cursor;
+      }
+      return;
+    }
+
+    if (!inFence && line.trim() === '') {
+      lastSafeIndex = cursor;
+    }
+  });
+
+  if (!inFence && text.endsWith('\n')) {
+    lastSafeIndex = text.length;
+  }
+
+  if (!lastSafeIndex) {
+    return {
+      renderedContent: '',
+      pendingContent: text,
+    };
+  }
+
+  return {
+    renderedContent: text.slice(0, lastSafeIndex).trimEnd(),
+    pendingContent: text.slice(lastSafeIndex),
+  };
+};
+
 function MarkdownMessage({ content }) {
   return (
     <ReactMarkdown
@@ -84,6 +132,28 @@ function StreamingDots() {
         />
       ))}
     </div>
+  );
+}
+
+function StreamingMarkdownMessage({ content }) {
+  const { renderedContent, pendingContent } = useMemo(
+    () => splitStreamingMarkdown(content),
+    [content]
+  );
+
+  if (!renderedContent && !pendingContent) {
+    return <StreamingDots />;
+  }
+
+  return (
+    <>
+      {renderedContent && <MarkdownMessage content={renderedContent} />}
+      {pendingContent && (
+        <div className={`${renderedContent ? 'mt-3' : ''} whitespace-pre-wrap break-words text-white/82`}>
+          {pendingContent}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -404,15 +474,15 @@ export default function AiAssistantPage({
                         message.role === 'user'
                           ? 'border-cyan-300/15 bg-cyan-400/10 text-white'
                           : 'border-white/10 bg-white/[0.07] text-white/85'
-                      }`}>
-                        <div className="break-words text-sm leading-7">
-                          {message.content ? (
-                            message.role === 'assistant' && message.streaming ? (
-                              <div className="whitespace-pre-wrap break-words">{message.content}</div>
-                            ) : (
+                        }`}>
+                          <div className="break-words text-sm leading-7">
+                            {message.content ? (
+                              message.role === 'assistant' && message.streaming ? (
+                              <StreamingMarkdownMessage content={message.content} />
+                              ) : (
                               <MarkdownMessage content={message.content} />
-                            )
-                          ) : message.role === 'assistant' && message.streaming ? (
+                              )
+                            ) : message.role === 'assistant' && message.streaming ? (
                             <StreamingDots />
                           ) : '...'}
                         </div>
