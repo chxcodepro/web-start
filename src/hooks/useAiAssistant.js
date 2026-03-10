@@ -44,6 +44,7 @@ const buildTitle = (text) => {
 
 export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
   const [aiConfig, setAiConfig] = useState(DEFAULT_AI_ASSISTANT_CONFIG);
+  const [defaultConversationCreated, setDefaultConversationCreated] = useState(false);
   const [conversations, setConversations] = useState([]);
   const [activeConversationId, setActiveConversationId] = useState('');
   const [isAiSettingsOpen, setIsAiSettingsOpen] = useState(false);
@@ -73,6 +74,7 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
   useEffect(() => {
     if (!user) {
       setAiConfig(DEFAULT_AI_ASSISTANT_CONFIG);
+      setDefaultConversationCreated(false);
       setConversations([]);
       setActiveConversationId('');
       creatingDefaultConversationRef.current = false;
@@ -93,6 +95,7 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
           ...DEFAULT_AI_ASSISTANT_CONFIG,
           ...(data.config || {}),
         });
+        setDefaultConversationCreated(data.defaultConversationCreated === true);
         setConfigLoaded(true);
       },
       () => {
@@ -168,7 +171,13 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
   useEffect(() => {
     if (!user || !conversationsLoaded) return;
     if (defaultConversationInitializedRef.current) return;
+    if (defaultConversationCreated) {
+      defaultConversationInitializedRef.current = true;
+      return;
+    }
     if (conversations.length) {
+      setDefaultConversationCreated(true);
+      void setDoc(CONFIG_DOC, { defaultConversationCreated: true }, { merge: true });
       defaultConversationInitializedRef.current = true;
       return;
     }
@@ -176,13 +185,15 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
 
     creatingDefaultConversationRef.current = true;
     createConversation('', { title: '默认话题' })
-      .then(() => {
+      .then(async () => {
+        await setDoc(CONFIG_DOC, { defaultConversationCreated: true }, { merge: true });
+        setDefaultConversationCreated(true);
         defaultConversationInitializedRef.current = true;
       })
       .catch(() => {
         creatingDefaultConversationRef.current = false;
       });
-  }, [conversations.length, conversationsLoaded, createConversation, user]);
+  }, [conversations.length, conversationsLoaded, createConversation, defaultConversationCreated, user]);
 
   const deleteConversation = useCallback(async (conversationId) => {
     if (!conversationId) return;

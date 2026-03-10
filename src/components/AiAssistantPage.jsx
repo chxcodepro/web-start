@@ -79,8 +79,8 @@ export default function AiAssistantPage({
 
   const emptyHint = useMemo(() => {
     if (!isLoggedIn) return '登录后才能使用 AI 助手。';
-    if (!activeConversation) return '默认话题准备中，等一下就能直接发消息。';
-    return '问点什么，比如让它帮你查资料、写提示词、整理链接。';
+    if (!activeConversation) return '默认话题准备中。';
+    return '开始聊天吧。';
   }, [activeConversation, isLoggedIn]);
 
   const isStreaming = Boolean(streamingConversationId);
@@ -148,7 +148,6 @@ export default function AiAssistantPage({
                   <Sparkles size={18} className="text-cyan-300" />
                   AI 助手
                 </h1>
-                <p className="text-xs text-white/45">背景沿用当前页面，聊天、配置、会话都会同步到 Firebase。</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -298,37 +297,26 @@ export default function AiAssistantPage({
 
             <div className="border-t border-white/10 bg-white/[0.05] p-4 md:p-5">
               <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-                <textarea
-                  value={draft}
-                  onChange={(event) => setDraft(event.target.value)}
-                  onKeyDown={handleDraftKeyDown}
-                  placeholder={isLoggedIn ? '给 AI 助手发条消息...' : '请先登录后再使用 AI 助手'}
-                  rows={3}
-                  disabled={isStreaming}
-                  className="w-full resize-none rounded-[26px] border border-white/10 bg-white/[0.08] px-4 py-3 text-sm leading-7 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl focus:border-cyan-400/70 focus:bg-white/[0.12] focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
-                />
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs text-white/35">回车发送，Shift + 回车换行。向下滚动可以返回导航页。</p>
-                  <div className="relative flex items-center gap-2" ref={searchPanelRef}>
+                <div className="flex items-center justify-between">
+                  <div className="relative" ref={searchPanelRef}>
                     <button
                       type="button"
                       onClick={() => setShowSearchPanel(prev => !prev)}
-                      className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm text-white transition ${
+                      className={`relative inline-flex h-10 w-10 items-center justify-center rounded-2xl border text-white transition ${
                         showSearchPanel || searchConfig.enableWebSearch
                           ? 'border-cyan-300/20 bg-cyan-500/12'
                           : 'border-white/10 bg-white/[0.08] hover:bg-white/[0.14]'
                       }`}
                     >
-                      <Search size={14} />
-                      联网搜索
+                      <Search size={15} />
+                      {searchConfig.enableWebSearch && (
+                        <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-cyan-300" />
+                      )}
                     </button>
                     {showSearchPanel && (
-                      <div className="absolute bottom-full right-0 z-20 mb-2 w-[320px] rounded-[24px] border border-white/10 bg-slate-950/95 p-4 shadow-[0_24px_60px_rgba(4,10,25,0.42)] backdrop-blur-2xl">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-medium text-white/88">联网搜索</p>
-                            <p className="mt-1 text-xs text-white/45">这里改的是聊天时用的搜索方式。</p>
-                          </div>
+                      <div className="absolute left-0 top-full z-20 mt-2 w-[320px] rounded-[24px] border border-white/10 bg-slate-950/95 p-4 shadow-[0_24px_60px_rgba(4,10,25,0.42)] backdrop-blur-2xl">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-sm font-medium text-white/88">联网搜索</span>
                           <button
                             type="button"
                             onClick={() => setShowSearchPanel(false)}
@@ -339,7 +327,7 @@ export default function AiAssistantPage({
                         </div>
 
                         <div className="mt-4 flex items-center justify-between gap-3">
-                          <span className="text-xs text-white/60">启用联网搜索</span>
+                          <span className="text-xs text-white/60">启用</span>
                           <button
                             type="button"
                             onClick={() => setSearchConfig(prev => ({ ...prev, enableWebSearch: !prev.enableWebSearch }))}
@@ -378,22 +366,16 @@ export default function AiAssistantPage({
 
                             {searchConfig.searchMode === 'exa' && (
                               <div className="mt-4 space-y-2">
-                                <label className="block text-xs text-white/55">Exa 搜索 Key</label>
+                                <label className="block text-xs text-white/55">Exa Key</label>
                                 <input
                                   type="password"
                                   value={searchConfig.searchApiKey}
                                   onChange={(event) => setSearchConfig(prev => ({ ...prev, searchApiKey: event.target.value }))}
-                                  placeholder="不填就复用上面的主 API Key"
+                                  placeholder="不填就复用主 Key"
                                   className="w-full rounded-2xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl focus:border-cyan-400/70 focus:bg-white/[0.12] focus:outline-none"
                                 />
                               </div>
                             )}
-
-                            <p className="mt-4 text-xs text-white/45">
-                              {searchConfig.searchMode === 'duckduckgo' && 'DuckDuckGo 不用额外 Key，兼容性最好。'}
-                              {searchConfig.searchMode === 'exa' && 'Exa 结果更干净，没填搜索 Key 就会复用主 API Key。'}
-                              {searchConfig.searchMode === 'openai' && 'OpenAI 原生搜索要求接口本身支持 Responses 和 web search。'}
-                            </p>
                           </>
                         )}
 
@@ -404,19 +386,31 @@ export default function AiAssistantPage({
                           className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-sm text-white transition hover:bg-white/[0.14] disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {savingSearchConfig ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                          {savingSearchConfig ? '保存中...' : searchConfigDirty ? '保存联网配置' : '已保存'}
+                          {savingSearchConfig ? '保存中...' : searchConfigDirty ? '保存' : '已保存'}
                         </button>
                       </div>
                     )}
-                    <button
-                      type="submit"
-                      disabled={!draft.trim() || isStreaming}
-                      className="inline-flex items-center gap-2 rounded-2xl bg-cyan-500/80 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <Send size={14} />
-                      {isStreaming ? '生成中...' : '发送'}
-                    </button>
                   </div>
+                </div>
+
+                <textarea
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  onKeyDown={handleDraftKeyDown}
+                  placeholder={isLoggedIn ? '给 AI 助手发条消息...' : '请先登录后再使用 AI 助手'}
+                  rows={3}
+                  disabled={isStreaming}
+                  className="w-full resize-none rounded-[26px] border border-white/10 bg-white/[0.08] px-4 py-3 text-sm leading-7 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl focus:border-cyan-400/70 focus:bg-white/[0.12] focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                />
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={!draft.trim() || isStreaming}
+                    className="inline-flex items-center gap-2 rounded-2xl bg-cyan-500/80 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Send size={14} />
+                    {isStreaming ? '生成中...' : '发送'}
+                  </button>
                 </div>
               </form>
             </div>

@@ -61,13 +61,10 @@ export default function AiAssistantSettingsModal({
       <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={onClose} />
       <div className="relative z-10 w-full max-w-2xl overflow-hidden rounded-[28px] border border-white/15 bg-white/[0.12] shadow-[0_30px_80px_rgba(4,10,25,0.45)] backdrop-blur-2xl">
         <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.06] px-5 py-4">
-          <div>
-            <h2 className="flex items-center gap-2 text-xl font-bold text-white">
-              <Bot size={18} />
-              AI 助手设置
-            </h2>
-            <p className="mt-1 text-xs text-white/45">这里的 Key、模型、提示词都会保存到 Firebase，跨设备自动同步。</p>
-          </div>
+          <h2 className="flex items-center gap-2 text-xl font-bold text-white">
+            <Bot size={18} />
+            AI 助手设置
+          </h2>
           <button onClick={onClose} className="rounded-full p-2 text-white/45 transition hover:bg-white/10 hover:text-white">
             <X size={18} />
           </button>
@@ -154,13 +151,6 @@ export default function AiAssistantSettingsModal({
               placeholder="你是我的私人 AI 助手..."
               className="w-full resize-none rounded-[24px] border border-white/10 bg-white/[0.08] px-4 py-3 text-sm leading-6 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl focus:border-cyan-400/70 focus:bg-white/[0.12] focus:outline-none"
             />
-          </div>
-
-          <div className="rounded-[24px] border border-white/10 bg-white/[0.06] p-4 text-sm text-white/65">
-            <p>默认走 OpenAI 兼容接口。</p>
-            <p className="mt-1">模型列表会请求：`你的地址 + /v1/models`。</p>
-            <p className="mt-1">聊天会请求：`你的地址 + /v1/chat/completions`。</p>
-            <p className="mt-1">联网搜索的开关和渠道已经放到聊天输入框上面。</p>
           </div>
         </div>
 
