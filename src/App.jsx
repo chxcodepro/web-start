@@ -56,6 +56,7 @@ export default function App() {
     pages,
     setPages,
     isLoading,
+    authReady,
     user,
     bgImage,
     setBgImage,
@@ -76,10 +77,10 @@ export default function App() {
   }, [adminHidden]);
 
   useEffect(() => {
-    if (!hasLoginSession && adminHidden) {
+    if (authReady && !hasLoginSession && adminHidden) {
       setAdminHidden(false);
     }
-  }, [hasLoginSession, adminHidden]);
+  }, [authReady, hasLoginSession, adminHidden]);
 
   const handleHideAdmin = useCallback(() => {
     setAdminHidden(true);

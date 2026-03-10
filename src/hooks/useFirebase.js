@@ -13,6 +13,7 @@ export function useFirebase({ showToast }) {
   const [pages, setPages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
   const [bgImage, setBgImage] = useState(() => {
     return localStorage.getItem('my-nav-bg') || null;
   });
@@ -23,6 +24,7 @@ export function useFirebase({ showToast }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      setAuthReady(true);
     });
     return () => unsubscribe();
   }, []);
@@ -118,6 +120,7 @@ export function useFirebase({ showToast }) {
     pages,
     setPages,
     isLoading,
+    authReady,
     user,
     isAdmin,
     bgImage,

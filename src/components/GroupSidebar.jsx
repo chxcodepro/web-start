@@ -22,7 +22,27 @@ export default function GroupSidebar({
   const [activeGroup, setActiveGroup] = useState('');
   const [hovered, setHovered] = useState(false);
   const observerRef = useRef(null);
+  const hoverTimerRef = useRef(null);
   const expanded = fixedOpen || hovered;
+
+  const openSidebar = useCallback(() => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    setHovered(true);
+  }, []);
+
+  const closeSidebar = useCallback(() => {
+    if (fixedOpen) return;
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+    }
+    hoverTimerRef.current = setTimeout(() => {
+      setHovered(false);
+      hoverTimerRef.current = null;
+    }, 80);
+  }, [fixedOpen]);
 
   // 持久化固定状态
   useEffect(() => {
@@ -32,6 +52,14 @@ export default function GroupSidebar({
       // 忽略本地存储异常
     }
   }, [fixedOpen, storageKey]);
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current) {
+        clearTimeout(hoverTimerRef.current);
+      }
+    };
+  }, []);
 
   // IntersectionObserver 检测当前可见分组
   useEffect(() => {
@@ -150,47 +178,62 @@ export default function GroupSidebar({
         </div>
       )}
 
-      {/* 桌面端 sticky 侧边栏 */}
-      <div
-        className={`hidden md:flex flex-col shrink-0 sticky backdrop-blur-xl bg-gray-900/40 border-r border-white/10 transition-all duration-300 z-20 ${
-          expanded ? 'w-48' : 'w-10'
-        }`}
-        style={{
-          top: stickyTop,
-          height: `calc(100vh - ${stickyTop})`,
-          paddingTop: paddingTop,
-        }}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-      >
-        {expanded ? (
-          <>
-            <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/10 shrink-0">
-              <span className="text-[11px] font-bold text-white/40 tracking-wider">分组导航</span>
-              <button
-                onClick={() => setFixedOpen(prev => !prev)}
-                className={`p-1 rounded-lg transition ${
-                  fixedOpen
-                    ? 'bg-cyan-500/15 text-cyan-300 hover:bg-cyan-500/25'
-                    : 'text-white/40 hover:bg-white/10 hover:text-white'
-                }`}
-                title={fixedOpen ? '取消固定' : '固定侧边栏'}
-              >
-                {fixedOpen ? <PinOff size={14} /> : <Pin size={14} />}
-              </button>
-            </div>
-            {renderGroupList()}
-          </>
-        ) : (
-          <div className="flex flex-col items-center pt-2">
+      {/* 桌面端窄轨道 + 悬浮滑出面板 */}
+      <div className="hidden md:block shrink-0 w-10 relative z-20">
+        <div
+          className="sticky"
+          style={{
+            top: stickyTop,
+            height: `calc(100vh - ${stickyTop})`,
+            paddingTop: paddingTop,
+          }}
+        >
+          <div className="relative h-full w-10">
             <div
-              className="p-1.5 rounded-lg text-white/30"
-              title="鼠标移入展开分组导航"
+              className="absolute inset-y-0 left-0 w-10 rounded-r-2xl border-r border-white/10 bg-gray-900/70 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
+              onMouseEnter={openSidebar}
+              onMouseLeave={closeSidebar}
             >
-              <Layers size={16} />
+              <div className="flex flex-col items-center pt-2">
+                <div
+                  className={`p-1.5 rounded-lg transition-colors ${
+                    expanded ? 'text-cyan-300' : 'text-white/30'
+                  }`}
+                  title="鼠标移入展开分组导航"
+                >
+                  <Layers size={16} />
+                </div>
+              </div>
+            </div>
+
+            <div
+              className={`absolute inset-y-0 left-0 flex w-48 flex-col overflow-hidden rounded-r-2xl border-r border-white/10 bg-gray-900/88 shadow-[0_20px_50px_rgba(0,0,0,0.35)] transition-[transform,opacity] duration-200 ease-out ${
+                expanded
+                  ? 'translate-x-0 opacity-100 pointer-events-auto'
+                  : '-translate-x-3 opacity-0 pointer-events-none'
+              }`}
+              style={{ willChange: 'transform, opacity' }}
+              onMouseEnter={openSidebar}
+              onMouseLeave={closeSidebar}
+            >
+              <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/10 shrink-0 bg-white/[0.03]">
+                <span className="text-[11px] font-bold text-white/40 tracking-wider">分组导航</span>
+                <button
+                  onClick={() => setFixedOpen(prev => !prev)}
+                  className={`p-1 rounded-lg transition ${
+                    fixedOpen
+                      ? 'bg-cyan-500/15 text-cyan-300 hover:bg-cyan-500/25'
+                      : 'text-white/40 hover:bg-white/10 hover:text-white'
+                  }`}
+                  title={fixedOpen ? '取消固定' : '固定侧边栏'}
+                >
+                  {fixedOpen ? <PinOff size={14} /> : <Pin size={14} />}
+                </button>
+              </div>
+              {renderGroupList()}
             </div>
           </div>
-        )}
+        </div>
       </div>
     </>
   );
