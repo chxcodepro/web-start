@@ -1,20 +1,8 @@
 // 主应用组件
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { lazy, Suspense, useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Check, AlertTriangle } from 'lucide-react';
 
 // 组件
-import {
-  LoginModal,
-  SiteModal,
-  BgModal,
-  GroupModal,
-  ImportModal,
-  WebDavModal,
-  GitHubStarsSettingsModal,
-  AiAssistantSettingsModal,
-} from './components/modals';
-import AiAssistantPage from './components/AiAssistantPage';
-import GitHubStarsPage from './components/stars/GitHubStarsPage';
 import LoadingPage from './components/LoadingPage';
 import MainPage from './components/MainPage';
 import VersionTag from './components/VersionTag';
@@ -33,6 +21,17 @@ import { mergePagesToSingle } from './utils/helpers';
 
 // 全局样式
 import { globalStyles } from './styles/globalStyles';
+
+const LoginModal = lazy(() => import('./components/modals/LoginModal'));
+const SiteModal = lazy(() => import('./components/modals/SiteModal'));
+const BgModal = lazy(() => import('./components/modals/BgModal'));
+const GroupModal = lazy(() => import('./components/modals/GroupModal'));
+const ImportModal = lazy(() => import('./components/modals/ImportModal'));
+const WebDavModal = lazy(() => import('./components/modals/WebDavModal'));
+const GitHubStarsSettingsModal = lazy(() => import('./components/modals/GitHubStarsSettingsModal'));
+const AiAssistantSettingsModal = lazy(() => import('./components/modals/AiAssistantSettingsModal'));
+const AiAssistantPage = lazy(() => import('./components/AiAssistantPage'));
+const GitHubStarsPage = lazy(() => import('./components/stars/GitHubStarsPage'));
 
 export default function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -363,35 +362,39 @@ export default function App() {
         <div className={`fixed inset-0 z-0 bg-cover bg-center transition-all duration-700 ${!bgImage ? 'bg-gray-900' : ''}`} style={bgImage ? { backgroundImage: `url(${bgImage})` } : {}} />
         <div className="fixed inset-0 z-0 bg-gray-900/50" />
         <div className="relative z-10">
-          <GitHubStarsPage
-            repos={starsRepos}
-            groups={starsGroups}
-            config={starsConfig}
-            user={user}
-            onBack={() => setShowStarsPage(false)}
-            onSync={handleSyncStars}
-            onAIAnalyze={handleAIAnalyze}
-            onOpenSettings={() => setIsStarsSettingsOpen(true)}
-            onUpdateRepo={handleUpdateStarsRepo}
-            onRenameGroup={handleRenameStarsGroup}
-            syncing={starsSyncing}
-            analyzing={starsAnalyzing}
-            lastSyncAt={starsLastSyncAt}
-          />
+          <Suspense fallback={null}>
+            <GitHubStarsPage
+              repos={starsRepos}
+              groups={starsGroups}
+              config={starsConfig}
+              user={user}
+              onBack={() => setShowStarsPage(false)}
+              onSync={handleSyncStars}
+              onAIAnalyze={handleAIAnalyze}
+              onOpenSettings={() => setIsStarsSettingsOpen(true)}
+              onUpdateRepo={handleUpdateStarsRepo}
+              onRenameGroup={handleRenameStarsGroup}
+              syncing={starsSyncing}
+              analyzing={starsAnalyzing}
+              lastSyncAt={starsLastSyncAt}
+            />
+          </Suspense>
         </div>
         {/* Stars 设置弹窗 */}
-        {isStarsSettingsOpen && (
-          <GitHubStarsSettingsModal
-            isOpen={isStarsSettingsOpen}
-            onClose={() => setIsStarsSettingsOpen(false)}
-            initialConfig={starsConfig}
-            onSaveConfig={handleSaveStarsConfig}
-            onTestGitHub={handleTestGitHubToken}
-            onStartOAuth={handleStartOAuth}
-            onResetGroups={handleResetGroups}
-            reposCount={starsRepos.length}
-          />
-        )}
+        <Suspense fallback={null}>
+          {isStarsSettingsOpen && (
+            <GitHubStarsSettingsModal
+              isOpen={isStarsSettingsOpen}
+              onClose={() => setIsStarsSettingsOpen(false)}
+              initialConfig={starsConfig}
+              onSaveConfig={handleSaveStarsConfig}
+              onTestGitHub={handleTestGitHubToken}
+              onStartOAuth={handleStartOAuth}
+              onResetGroups={handleResetGroups}
+              reposCount={starsRepos.length}
+            />
+          )}
+        </Suspense>
         {/* Toast 提示 */}
         <ToastMessage toast={toast} />
       </div>
@@ -408,23 +411,25 @@ export default function App() {
       <div className="fixed inset-0 z-0 bg-gray-900/50" />
 
       {/* 主内容 */}
-      <AiAssistantPage
-        visible={showAiPage}
-        onClose={closeAiPage}
-        isLoggedIn={hasLoginSession}
-        onRequireLogin={() => setIsLoginModalOpen(true)}
-        aiConfig={aiConfig}
-        conversations={conversations}
-        activeConversation={activeConversation}
-        activeConversationId={activeConversationId}
-        setActiveConversationId={setActiveConversationId}
-        onCreateConversation={createConversation}
-        onDeleteConversation={deleteConversation}
-        onSendMessage={sendMessage}
-        onSaveConfig={saveAiConfig}
-        onOpenSettings={() => setIsAiSettingsOpen(true)}
-        streamingConversationId={streamingConversationId}
-      />
+      <Suspense fallback={null}>
+        <AiAssistantPage
+          visible={showAiPage}
+          onClose={closeAiPage}
+          isLoggedIn={hasLoginSession}
+          onRequireLogin={() => setIsLoginModalOpen(true)}
+          aiConfig={aiConfig}
+          conversations={conversations}
+          activeConversation={activeConversation}
+          activeConversationId={activeConversationId}
+          setActiveConversationId={setActiveConversationId}
+          onCreateConversation={createConversation}
+          onDeleteConversation={deleteConversation}
+          onSendMessage={sendMessage}
+          onSaveConfig={saveAiConfig}
+          onOpenSettings={() => setIsAiSettingsOpen(true)}
+          streamingConversationId={streamingConversationId}
+        />
+      </Suspense>
       <MainPage
         isAdmin={isAdminVisible}
         hasLoginSession={hasLoginSession}
@@ -494,75 +499,77 @@ export default function App() {
       />
 
       {/* 弹窗组件 */}
-      {isLoginModalOpen && <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />}
-      {isModalOpen && <SiteModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={saveSite} onBatchSubmit={saveSitesBatch} initialData={editingSite} groups={activePage.groups} />}
-      {isBgModalOpen && <BgModal isOpen={isBgModalOpen} onClose={() => setIsBgModalOpen(false)} currentBg={bgImage} onSave={saveBgToCloud} />}
-      {isGroupModalOpen && (
-        <GroupModal
-          isOpen={isGroupModalOpen}
-          onClose={() => setIsGroupModalOpen(false)}
-          groups={activePage.groups}
-          sites={activePage.sites}
-          onAddGroup={addGroup}
-          onRemoveGroup={(name) => {
-            requestRemoveGroup(name);
-          }}
-          onRenameGroup={renameGroup}
-          onReorderGroups={reorderGroups}
-          onMoveSiteToGroup={moveSiteToGroup}
-          onMoveSitesToGroup={moveSitesToGroup}
-          onDeleteSites={deleteSites}
-          onEditSite={(site) => {
-            setEditingSite(site);
-            setIsModalOpen(true);
-          }}
-          onAddSite={(group) => {
-            setEditingSite({ group, pinned: false });
-            setIsModalOpen(true);
-          }}
-          showToast={showToast}
-        />
-      )}
-      {importModalData && (
-        <ImportModal
-          isOpen={!!importModalData}
-          onClose={() => setImportModalData(null)}
-          importData={importModalData}
-          existingGroups={activePage.groups}
-          onConfirm={confirmImportBookmarks}
-        />
-      )}
-      {isWebDavModalOpen && (
-        <WebDavModal
-          isOpen={isWebDavModalOpen}
-          onClose={() => setIsWebDavModalOpen(false)}
-          initialConfig={webdavConfig}
-          onSaveConfig={persistWebDavConfig}
-          onBackup={handleWebDavBackup}
-          onRestore={handleWebDavRestore}
-        />
-      )}
-      {isStarsSettingsOpen && (
-        <GitHubStarsSettingsModal
-          isOpen={isStarsSettingsOpen}
-          onClose={() => setIsStarsSettingsOpen(false)}
-          initialConfig={starsConfig}
-          onSaveConfig={handleSaveStarsConfig}
-          onTestGitHub={handleTestGitHubToken}
-          onStartOAuth={handleStartOAuth}
-          onResetGroups={handleResetGroups}
-          reposCount={starsRepos.length}
-        />
-      )}
-      {isAiSettingsOpen && (
-        <AiAssistantSettingsModal
-          isOpen={isAiSettingsOpen}
-          onClose={() => setIsAiSettingsOpen(false)}
-          initialConfig={aiConfig}
-          onSave={saveAiConfig}
-          onFetchModels={handleFetchAiModels}
-        />
-      )}
+      <Suspense fallback={null}>
+        {isLoginModalOpen && <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />}
+        {isModalOpen && <SiteModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={saveSite} onBatchSubmit={saveSitesBatch} initialData={editingSite} groups={activePage.groups} />}
+        {isBgModalOpen && <BgModal isOpen={isBgModalOpen} onClose={() => setIsBgModalOpen(false)} currentBg={bgImage} onSave={saveBgToCloud} />}
+        {isGroupModalOpen && (
+          <GroupModal
+            isOpen={isGroupModalOpen}
+            onClose={() => setIsGroupModalOpen(false)}
+            groups={activePage.groups}
+            sites={activePage.sites}
+            onAddGroup={addGroup}
+            onRemoveGroup={(name) => {
+              requestRemoveGroup(name);
+            }}
+            onRenameGroup={renameGroup}
+            onReorderGroups={reorderGroups}
+            onMoveSiteToGroup={moveSiteToGroup}
+            onMoveSitesToGroup={moveSitesToGroup}
+            onDeleteSites={deleteSites}
+            onEditSite={(site) => {
+              setEditingSite(site);
+              setIsModalOpen(true);
+            }}
+            onAddSite={(group) => {
+              setEditingSite({ group, pinned: false });
+              setIsModalOpen(true);
+            }}
+            showToast={showToast}
+          />
+        )}
+        {importModalData && (
+          <ImportModal
+            isOpen={!!importModalData}
+            onClose={() => setImportModalData(null)}
+            importData={importModalData}
+            existingGroups={activePage.groups}
+            onConfirm={confirmImportBookmarks}
+          />
+        )}
+        {isWebDavModalOpen && (
+          <WebDavModal
+            isOpen={isWebDavModalOpen}
+            onClose={() => setIsWebDavModalOpen(false)}
+            initialConfig={webdavConfig}
+            onSaveConfig={persistWebDavConfig}
+            onBackup={handleWebDavBackup}
+            onRestore={handleWebDavRestore}
+          />
+        )}
+        {isStarsSettingsOpen && (
+          <GitHubStarsSettingsModal
+            isOpen={isStarsSettingsOpen}
+            onClose={() => setIsStarsSettingsOpen(false)}
+            initialConfig={starsConfig}
+            onSaveConfig={handleSaveStarsConfig}
+            onTestGitHub={handleTestGitHubToken}
+            onStartOAuth={handleStartOAuth}
+            onResetGroups={handleResetGroups}
+            reposCount={starsRepos.length}
+          />
+        )}
+        {isAiSettingsOpen && (
+          <AiAssistantSettingsModal
+            isOpen={isAiSettingsOpen}
+            onClose={() => setIsAiSettingsOpen(false)}
+            initialConfig={aiConfig}
+            onSave={saveAiConfig}
+            onFetchModels={handleFetchAiModels}
+          />
+        )}
+      </Suspense>
 
       {/* 确认弹窗 */}
       {confirmConfig.isOpen && (
