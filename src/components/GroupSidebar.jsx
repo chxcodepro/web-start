@@ -194,7 +194,11 @@ export default function GroupSidebar({
             expanded ? 'w-48' : 'w-10'
           }`}>
             <div
-              className="absolute inset-y-0 left-0 w-10 rounded-br-2xl border-r border-white/10 bg-gray-900/76 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
+              className={`absolute inset-y-0 left-0 rounded-br-2xl border-r border-white/10 bg-gray-900/76 shadow-[0_10px_30px_rgba(0,0,0,0.18)] transition-[width,opacity] duration-200 ease-out ${
+                expanded
+                  ? 'w-48 opacity-0 pointer-events-none'
+                  : 'w-10 opacity-100'
+              }`}
               onMouseEnter={openSidebar}
               onMouseLeave={closeSidebar}
             >
