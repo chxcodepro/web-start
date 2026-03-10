@@ -184,7 +184,7 @@ export default function AiAssistantPage({
               ))}
             </div>
 
-            <div className="custom-scrollbar flex-1 overflow-y-auto px-4 py-5 md:px-6">
+            <div data-ai-scrollable className="custom-scrollbar flex-1 overflow-y-auto px-4 py-5 md:px-6">
               {!activeConversation?.messages?.length ? (
                 <div className="flex h-full min-h-[360px] items-center justify-center">
                   <div className="max-w-xl rounded-[30px] border border-white/10 bg-white/[0.06] px-6 py-8 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
@@ -245,7 +245,7 @@ export default function AiAssistantPage({
                   className="w-full resize-none rounded-[26px] border border-white/10 bg-white/[0.08] px-4 py-3 text-sm leading-7 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl focus:border-cyan-400/70 focus:bg-white/[0.12] focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
                 />
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs text-white/35">右侧绳索或向上滚动都可以进入这里，向下按钮返回导航页。</p>
+                  <p className="text-xs text-white/35">右上角按钮或向上滚动都可以进入这里，向下滚动返回导航页。</p>
                   <button
                     type="submit"
                     disabled={!draft.trim() || streamingConversationId === activeConversationId}

@@ -332,6 +332,33 @@ export default function App() {
     return () => window.removeEventListener('wheel', handleWheelOpenAi);
   }, [openAiPage, showAiPage, showStarsPage]);
 
+  // 在 AI 页面向下滚动返回导航页
+  useEffect(() => {
+    if (!showAiPage) return undefined;
+
+    const handleWheelCloseAi = (event) => {
+      if (aiScrollLockRef.current) return;
+      const target = event.target;
+      const tagName = target?.tagName?.toLowerCase?.();
+      if (['input', 'textarea', 'select'].includes(tagName) || target?.isContentEditable) {
+        return;
+      }
+      // 如果滚动目标在可滚动容器内（如聊天记录），不触发关闭
+      const scrollable = target?.closest?.('[data-ai-scrollable]');
+      if (scrollable && scrollable.scrollHeight > scrollable.clientHeight) return;
+      if (event.deltaY > 45) {
+        aiScrollLockRef.current = true;
+        setShowAiPage(false);
+        window.setTimeout(() => {
+          aiScrollLockRef.current = false;
+        }, 900);
+      }
+    };
+
+    window.addEventListener('wheel', handleWheelCloseAi, { passive: true });
+    return () => window.removeEventListener('wheel', handleWheelCloseAi);
+  }, [showAiPage]);
+
   // 加载状态
   if (isLoading) {
     return (
