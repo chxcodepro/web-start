@@ -146,7 +146,7 @@ export default function GroupSidebar({
 
       {/* 移动端浮动触发按钮 */}
       <button
-        className="fixed left-3 bottom-6 z-40 md:hidden w-11 h-11 bg-white/15 backdrop-blur-xl border border-white/20 rounded-full shadow-lg flex items-center justify-center text-white/70 active:scale-95 transition-all"
+        className="fixed left-3 bottom-6 z-40 md:hidden flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/[0.16] text-white/70 shadow-[0_12px_24px_rgba(8,15,35,0.28)] backdrop-blur-2xl transition-all active:scale-95"
         onClick={() => setMobileOpen(true)}
       >
         <Layers size={18} />
@@ -161,10 +161,10 @@ export default function GroupSidebar({
             style={{ animation: 'sidebarFadeIn 0.2s ease-out' }}
           />
           <div
-            className="absolute left-0 top-0 bottom-0 w-60 bg-gray-900/95 backdrop-blur-xl border-r border-white/10 shadow-2xl flex flex-col"
+            className="absolute bottom-0 left-0 top-0 flex w-60 flex-col border-r border-white/10 bg-gray-900/88 shadow-[0_24px_60px_rgba(0,0,0,0.4)] backdrop-blur-2xl"
             style={{ animation: 'sidebarSlideIn 0.25s ease-out' }}
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0">
+            <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.04] px-4 py-3 shrink-0">
               <span className="text-sm font-bold text-white/80">分组导航</span>
               <button
                 onClick={() => setMobileOpen(false)}
@@ -194,7 +194,7 @@ export default function GroupSidebar({
             expanded ? 'w-48' : 'w-10'
           }`}>
             <div
-              className={`absolute inset-y-0 left-0 rounded-br-2xl border-r border-white/10 bg-gray-900/76 shadow-[0_10px_30px_rgba(0,0,0,0.18)] transition-[width,opacity] duration-200 ease-out ${
+              className={`absolute inset-y-0 left-0 rounded-br-2xl border-r border-white/10 bg-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_36px_rgba(5,10,25,0.2)] backdrop-blur-xl transition-[width,opacity] duration-200 ease-out ${
                 expanded
                   ? 'w-48 opacity-0 pointer-events-none'
                   : 'w-10 opacity-100'
@@ -215,7 +215,7 @@ export default function GroupSidebar({
             </div>
 
             <div
-              className={`absolute inset-y-0 left-0 flex w-48 flex-col overflow-hidden rounded-br-2xl border-r border-white/10 bg-gray-900/88 shadow-[0_20px_50px_rgba(0,0,0,0.35)] transition-[transform,opacity] duration-200 ease-out ${
+              className={`absolute inset-y-0 left-0 flex w-48 flex-col overflow-hidden rounded-br-2xl border-r border-white/10 bg-white/[0.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_54px_rgba(5,10,25,0.32)] backdrop-blur-2xl transition-[transform,opacity] duration-200 ease-out ${
                 expanded
                   ? 'translate-x-0 opacity-100 pointer-events-auto'
                   : '-translate-x-3 opacity-0 pointer-events-none'
@@ -224,7 +224,7 @@ export default function GroupSidebar({
               onMouseEnter={openSidebar}
               onMouseLeave={closeSidebar}
             >
-              <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/10 shrink-0 bg-white/[0.03]">
+              <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.06] px-3 py-2.5 shrink-0">
                 <span className="text-[11px] font-bold text-white/40 tracking-wider">分组导航</span>
                 <button
                   onClick={() => setFixedOpen(prev => !prev)}

@@ -245,7 +245,7 @@ export default function GitHubStarsPage({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="搜索仓库..."
-                className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white placeholder-white/40 focus:border-cyan-500 focus:outline-none text-sm"
+                className="w-full rounded-2xl border border-white/15 bg-white/[0.12] pl-10 pr-4 py-2.5 text-sm text-white placeholder-white/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_12px_30px_rgba(8,15,35,0.22)] backdrop-blur-2xl focus:border-cyan-400/70 focus:bg-white/[0.16] focus:outline-none"
               />
             </div>
 
@@ -255,7 +255,7 @@ export default function GitHubStarsPage({
               <select
                 value={filterLanguage}
                 onChange={(e) => setFilterLanguage(e.target.value)}
-                className="flex-1 min-w-[100px] max-w-[150px] bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none appearance-none cursor-pointer [&>option]:bg-gray-800 [&>option]:text-white"
+                className="flex-1 min-w-[100px] max-w-[150px] appearance-none cursor-pointer rounded-2xl border border-white/15 bg-white/[0.12] px-3 py-2.5 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_12px_24px_rgba(8,15,35,0.16)] backdrop-blur-xl focus:border-cyan-400/70 focus:bg-white/[0.16] focus:outline-none [&>option]:bg-gray-800 [&>option]:text-white"
               >
                 <option value="all">所有语言</option>
                 {languages.map(lang => (
@@ -267,7 +267,7 @@ export default function GitHubStarsPage({
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="flex-1 min-w-[90px] max-w-[120px] bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none appearance-none cursor-pointer [&>option]:bg-gray-800 [&>option]:text-white"
+                className="flex-1 min-w-[90px] max-w-[120px] appearance-none cursor-pointer rounded-2xl border border-white/15 bg-white/[0.12] px-3 py-2.5 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_12px_24px_rgba(8,15,35,0.16)] backdrop-blur-xl focus:border-cyan-400/70 focus:bg-white/[0.16] focus:outline-none [&>option]:bg-gray-800 [&>option]:text-white"
               >
                 <option value="stars">按 Stars</option>
                 <option value="name">按名称</option>
@@ -276,16 +276,16 @@ export default function GitHubStarsPage({
               </select>
 
               {/* 视图切换 */}
-              <div className="flex bg-white/5 rounded-xl p-1 border border-white/10 ml-auto">
+              <div className="ml-auto flex rounded-2xl border border-white/15 bg-white/[0.12] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_12px_24px_rgba(8,15,35,0.16)] backdrop-blur-xl">
                 <button
                   onClick={() => setViewMode('group')}
-                  className={`p-2 rounded-lg transition ${viewMode === 'group' ? 'bg-white/20 text-white' : 'text-white/50 hover:text-white'}`}
+                  className={`rounded-xl p-2 transition ${viewMode === 'group' ? 'bg-white/20 text-white shadow-[0_6px_16px_rgba(15,23,42,0.22)]' : 'text-white/50 hover:bg-white/10 hover:text-white'}`}
                 >
                   <LayoutGrid size={16} />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-lg transition ${viewMode === 'list' ? 'bg-white/20 text-white' : 'text-white/50 hover:text-white'}`}
+                  className={`rounded-xl p-2 transition ${viewMode === 'list' ? 'bg-white/20 text-white shadow-[0_6px_16px_rgba(15,23,42,0.22)]' : 'text-white/50 hover:bg-white/10 hover:text-white'}`}
                 >
                   <List size={16} />
                 </button>
