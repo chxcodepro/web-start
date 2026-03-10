@@ -167,6 +167,13 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
     showToast('对话已删除');
   }, [showToast]);
 
+  const deleteConversations = useCallback(async (conversationIds) => {
+    const ids = Array.isArray(conversationIds) ? [...new Set(conversationIds.filter(Boolean))] : [];
+    if (!ids.length) return;
+    await Promise.all(ids.map(id => deleteDoc(doc(db, 'ai_assistant_conversations', id))));
+    showToast(`已删除 ${ids.length} 个话题`);
+  }, [showToast]);
+
   const updateConversationMessages = useCallback(async (conversationId, messages, title) => {
     await updateDoc(doc(db, 'ai_assistant_conversations', conversationId), {
       title,
@@ -339,6 +346,7 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
     saveAiConfig,
     createConversation,
     deleteConversation,
+    deleteConversations,
     sendMessage,
   };
 }

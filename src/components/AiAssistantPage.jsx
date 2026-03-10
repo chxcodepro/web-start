@@ -1,13 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   ArrowDown,
   Bot,
+  CheckSquare,
+  Copy,
   Loader2,
   MessageSquarePlus,
+  RotateCcw,
   Send,
   Save,
   Search,
   Settings,
+  Square,
   Sparkles,
   Trash2,
   X,
@@ -36,6 +42,39 @@ const pickSearchConfig = (config = {}) => ({
   searchApiKey: String(config.searchApiKey || ''),
 });
 
+function MarkdownMessage({ content }) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
+        ul: ({ children }) => <ul className="mb-3 list-disc space-y-1 pl-5 last:mb-0">{children}</ul>,
+        ol: ({ children }) => <ol className="mb-3 list-decimal space-y-1 pl-5 last:mb-0">{children}</ol>,
+        li: ({ children }) => <li>{children}</li>,
+        a: ({ href, children }) => (
+          <a href={href} target="_blank" rel="noreferrer" className="text-cyan-200 underline underline-offset-2">
+            {children}
+          </a>
+        ),
+        blockquote: ({ children }) => <blockquote className="mb-3 border-l-2 border-white/15 pl-4 text-white/65 last:mb-0">{children}</blockquote>,
+        table: ({ children }) => <div className="mb-3 overflow-x-auto last:mb-0"><table className="min-w-full border-collapse text-left text-xs">{children}</table></div>,
+        th: ({ children }) => <th className="border border-white/10 bg-white/[0.06] px-3 py-2 font-medium text-white/85">{children}</th>,
+        td: ({ children }) => <td className="border border-white/10 px-3 py-2 align-top">{children}</td>,
+        pre: ({ children }) => <pre className="mb-3 overflow-x-auto rounded-2xl bg-black/25 p-3 text-xs last:mb-0">{children}</pre>,
+        code: ({ inline, children, className, ...props }) => (
+          inline ? (
+            <code className="rounded bg-black/25 px-1.5 py-0.5 text-[13px]" {...props}>{children}</code>
+          ) : (
+            <code className={className} {...props}>{children}</code>
+          )
+        ),
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  );
+}
+
 export default function AiAssistantPage({
   visible,
   onClose,
@@ -48,6 +87,7 @@ export default function AiAssistantPage({
   setActiveConversationId,
   onCreateConversation,
   onDeleteConversation,
+  onDeleteConversations,
   onSendMessage,
   onSaveConfig,
   onOpenSettings,
@@ -57,7 +97,12 @@ export default function AiAssistantPage({
   const [searchConfig, setSearchConfig] = useState(() => pickSearchConfig(aiConfig));
   const [savingSearchConfig, setSavingSearchConfig] = useState(false);
   const [showSearchPanel, setShowSearchPanel] = useState(false);
+  const [conversationBatchMode, setConversationBatchMode] = useState(false);
+  const [selectedConversationIds, setSelectedConversationIds] = useState([]);
+  const [copiedMessageId, setCopiedMessageId] = useState('');
   const searchPanelRef = useRef(null);
+  const textareaRef = useRef(null);
+  const copiedTimerRef = useRef(0);
 
   useEffect(() => {
     setSearchConfig(pickSearchConfig(aiConfig));
@@ -77,13 +122,22 @@ export default function AiAssistantPage({
     };
   }, [showSearchPanel]);
 
+  useEffect(() => {
+    setSelectedConversationIds((prev) => prev.filter(id => conversations.some(item => item.id === id)));
+  }, [conversations]);
+
+  useEffect(() => () => {
+    window.clearTimeout(copiedTimerRef.current);
+  }, []);
+
   const emptyHint = useMemo(() => {
     if (!isLoggedIn) return '登录后才能使用 AI 助手。';
-    return '开始聊天吧。';
-  }, [activeConversation, isLoggedIn]);
+    return '';
+  }, [isLoggedIn]);
 
   const isStreaming = Boolean(streamingConversationId);
   const searchConfigDirty = JSON.stringify(searchConfig) !== JSON.stringify(pickSearchConfig(aiConfig));
+  const selectedConversationCount = selectedConversationIds.length;
 
   const submitDraft = async () => {
     if (!isLoggedIn) {
@@ -127,6 +181,74 @@ export default function AiAssistantPage({
     }
   };
 
+  const toggleConversationSelection = (conversationId) => {
+    setSelectedConversationIds((prev) => (
+      prev.includes(conversationId)
+        ? prev.filter(id => id !== conversationId)
+        : [...prev, conversationId]
+    ));
+  };
+
+  const handleConversationClick = (conversationId) => {
+    if (conversationBatchMode) {
+      toggleConversationSelection(conversationId);
+      return;
+    }
+    setActiveConversationId?.(conversationId);
+  };
+
+  const handleToggleBatchMode = () => {
+    setConversationBatchMode((prev) => {
+      const next = !prev;
+      if (!next) {
+        setSelectedConversationIds([]);
+      }
+      return next;
+    });
+  };
+
+  const handleDeleteSelectedConversations = async () => {
+    if (!selectedConversationCount) return;
+    await onDeleteConversations?.(selectedConversationIds);
+    setSelectedConversationIds([]);
+    setConversationBatchMode(false);
+  };
+
+  const handleReplayMessage = (message) => {
+    setDraft(String(message?.content || ''));
+    setTimeout(() => {
+      textareaRef.current?.focus();
+      const length = textareaRef.current?.value?.length || 0;
+      textareaRef.current?.setSelectionRange?.(length, length);
+    }, 0);
+  };
+
+  const handleCopyMessage = async (message) => {
+    const text = String(message?.content || '');
+    if (!text) return;
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const input = document.createElement('textarea');
+        input.value = text;
+        input.style.position = 'fixed';
+        input.style.opacity = '0';
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+      }
+      setCopiedMessageId(message.id);
+      window.clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = window.setTimeout(() => {
+        setCopiedMessageId('');
+      }, 1500);
+    } catch {
+      // 忽略
+    }
+  };
+
   return (
     <div className={`fixed inset-0 z-[70] transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
       visible ? 'translate-y-0' : '-translate-y-full pointer-events-none'
@@ -167,11 +289,11 @@ export default function AiAssistantPage({
         <div className="mx-auto flex h-[calc(100vh-4rem)] w-full max-w-[1700px] gap-4 px-4 py-4 md:px-8">
           <aside className="hidden w-[320px] shrink-0 overflow-hidden rounded-[28px] border border-white/12 bg-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_54px_rgba(4,10,25,0.22)] backdrop-blur-2xl lg:flex lg:flex-col">
             <div className="border-b border-white/10 px-4 py-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.3em] text-white/35">会话列表</p>
-                  <p className="mt-2 text-sm text-white/55">{conversations.length} 个对话</p>
-                </div>
+              <div>
+                <p className="text-xs font-medium uppercase tracking-[0.3em] text-white/35">会话列表</p>
+                <p className="mt-2 text-sm text-white/55">{conversations.length} 个对话</p>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   onClick={() => {
                     if (!isLoggedIn) return onRequireLogin?.();
@@ -182,39 +304,78 @@ export default function AiAssistantPage({
                   <MessageSquarePlus size={15} />
                   新建话题
                 </button>
+                <button
+                  type="button"
+                  onClick={handleToggleBatchMode}
+                  className={`inline-flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm transition ${
+                    conversationBatchMode
+                      ? 'border-amber-300/25 bg-amber-500/12 text-white'
+                      : 'border-white/10 bg-white/[0.08] text-white/80 hover:bg-white/[0.14] hover:text-white'
+                  }`}
+                >
+                  <CheckSquare size={15} />
+                  {conversationBatchMode ? '取消批量' : '批量删除'}
+                </button>
+                {conversationBatchMode && (
+                  <button
+                    type="button"
+                    onClick={handleDeleteSelectedConversations}
+                    disabled={!selectedConversationCount}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-red-300/15 bg-red-500/12 px-3 py-2 text-sm text-white transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    <Trash2 size={15} />
+                    {selectedConversationCount ? `删除 ${selectedConversationCount}` : '删除'}
+                  </button>
+                )}
               </div>
             </div>
             <div className="custom-scrollbar flex-1 space-y-2 overflow-y-auto p-3">
               {conversations.map((conversation) => {
                 const preview = conversation.messages?.[conversation.messages.length - 1]?.content || '还没有消息';
                 const active = conversation.id === activeConversationId;
+                const selected = selectedConversationIds.includes(conversation.id);
                 return (
                   <div
                     key={conversation.id}
                     className={`w-full rounded-[22px] border px-3 py-3 text-left transition ${
-                      active
+                      conversationBatchMode && selected
+                        ? 'border-red-300/25 bg-red-500/10'
+                        : active
                         ? 'border-cyan-300/25 bg-cyan-400/10 shadow-[0_18px_40px_rgba(14,116,144,0.18)]'
                         : 'border-white/8 bg-white/[0.05] hover:bg-white/[0.1]'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setActiveConversationId?.(conversation.id)}
-                        className="min-w-0 flex-1 text-left"
-                      >
-                        <p className="truncate text-sm font-medium text-white/90">{conversation.title}</p>
-                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-white/45">{preview}</p>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onDeleteConversation?.(conversation.id);
-                        }}
-                        className="rounded-full p-1.5 text-white/30 transition hover:bg-white/10 hover:text-red-300"
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                      <div className="flex min-w-0 flex-1 items-start gap-2">
+                        {conversationBatchMode && (
+                          <button
+                            type="button"
+                            onClick={() => toggleConversationSelection(conversation.id)}
+                            className="mt-0.5 rounded-full p-0.5 text-white/60 transition hover:text-white"
+                          >
+                            {selected ? <CheckSquare size={16} /> : <Square size={16} />}
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleConversationClick(conversation.id)}
+                          className="min-w-0 flex-1 text-left"
+                        >
+                          <p className="truncate text-sm font-medium text-white/90">{conversation.title}</p>
+                          <p className="mt-1 line-clamp-2 text-xs leading-5 text-white/45">{preview}</p>
+                        </button>
+                      </div>
+                      {!conversationBatchMode && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onDeleteConversation?.(conversation.id);
+                          }}
+                          className="rounded-full p-1.5 text-white/30 transition hover:bg-white/10 hover:text-red-300"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
                     </div>
                     <p className="mt-3 text-[11px] text-white/30">{formatTime(conversation.updatedAt || conversation.createdAt)}</p>
                   </div>
@@ -231,21 +392,65 @@ export default function AiAssistantPage({
               </p>
             </div>
 
-            <div className="custom-scrollbar flex gap-2 overflow-x-auto border-b border-white/10 px-4 py-3 lg:hidden">
-              {conversations.map((conversation) => (
+            <div className="border-b border-white/10 px-4 py-3 lg:hidden">
+              <div className="mb-3 flex flex-wrap gap-2">
                 <button
-                  key={conversation.id}
                   type="button"
-                  onClick={() => setActiveConversationId?.(conversation.id)}
-                  className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${
-                    conversation.id === activeConversationId
-                      ? 'border-cyan-300/25 bg-cyan-400/10 text-white'
-                      : 'border-white/10 bg-white/[0.06] text-white/55'
+                  onClick={() => {
+                    if (!isLoggedIn) return onRequireLogin?.();
+                    onCreateConversation?.();
+                  }}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.08] px-3 py-2 text-sm text-white/80 transition hover:bg-white/[0.14] hover:text-white"
+                >
+                  <MessageSquarePlus size={15} />
+                  新建话题
+                </button>
+                <button
+                  type="button"
+                  onClick={handleToggleBatchMode}
+                  className={`inline-flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm transition ${
+                    conversationBatchMode
+                      ? 'border-amber-300/25 bg-amber-500/12 text-white'
+                      : 'border-white/10 bg-white/[0.08] text-white/80 hover:bg-white/[0.14] hover:text-white'
                   }`}
                 >
-                  {conversation.title}
+                  <CheckSquare size={15} />
+                  {conversationBatchMode ? '取消批量' : '批量删除'}
                 </button>
-              ))}
+                {conversationBatchMode && (
+                  <button
+                    type="button"
+                    onClick={handleDeleteSelectedConversations}
+                    disabled={!selectedConversationCount}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-red-300/15 bg-red-500/12 px-3 py-2 text-sm text-white transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    <Trash2 size={15} />
+                    {selectedConversationCount ? `删除 ${selectedConversationCount}` : '删除'}
+                  </button>
+                )}
+              </div>
+              <div className="custom-scrollbar flex gap-2 overflow-x-auto">
+                {conversations.map((conversation) => {
+                  const selected = selectedConversationIds.includes(conversation.id);
+                  return (
+                    <button
+                      key={conversation.id}
+                      type="button"
+                      onClick={() => handleConversationClick(conversation.id)}
+                      className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${
+                        conversationBatchMode && selected
+                          ? 'border-red-300/20 bg-red-500/12 text-white'
+                          : conversation.id === activeConversationId
+                            ? 'border-cyan-300/25 bg-cyan-400/10 text-white'
+                            : 'border-white/10 bg-white/[0.06] text-white/55'
+                      }`}
+                    >
+                      {conversationBatchMode && (selected ? '已选 · ' : '选择 · ')}
+                      {conversation.title}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div data-ai-scrollable className="custom-scrollbar flex-1 overflow-y-auto px-4 py-5 md:px-6">
@@ -256,7 +461,7 @@ export default function AiAssistantPage({
                       <Bot size={24} />
                     </div>
                     <h3 className="mt-4 text-xl font-semibold text-white">开始聊天吧</h3>
-                    <p className="mt-3 text-sm leading-7 text-white/55">{emptyHint}</p>
+                    {emptyHint && <p className="mt-3 text-sm leading-7 text-white/55">{emptyHint}</p>}
                   </div>
                 </div>
               ) : (
@@ -271,7 +476,29 @@ export default function AiAssistantPage({
                           ? 'border-cyan-300/15 bg-cyan-400/10 text-white'
                           : 'border-white/10 bg-white/[0.07] text-white/85'
                       }`}>
-                        <div className="whitespace-pre-wrap break-words text-sm leading-7">{message.content || '...'}</div>
+                        <div className="break-words text-sm leading-7">
+                          {message.content ? <MarkdownMessage content={message.content} /> : '...'}
+                        </div>
+                        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-white/45">
+                          <button
+                            type="button"
+                            onClick={() => handleCopyMessage(message)}
+                            className="inline-flex items-center gap-1 transition hover:text-white"
+                          >
+                            <Copy size={12} />
+                            {copiedMessageId === message.id ? '已复制' : '复制'}
+                          </button>
+                          {message.role === 'user' && (
+                            <button
+                              type="button"
+                              onClick={() => handleReplayMessage(message)}
+                              className="inline-flex items-center gap-1 transition hover:text-white"
+                            >
+                              <RotateCcw size={12} />
+                              修改后重放
+                            </button>
+                          )}
+                        </div>
                         {message.sources?.length > 0 && (
                           <div className="mt-4 rounded-[20px] border border-white/10 bg-black/10 p-3">
                             <p className="text-xs font-medium text-cyan-200/90">联网搜索结果</p>
@@ -397,6 +624,7 @@ export default function AiAssistantPage({
                 </div>
 
                 <textarea
+                  ref={textareaRef}
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
                   onKeyDown={handleDraftKeyDown}
