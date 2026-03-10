@@ -179,7 +179,9 @@ export default function GroupSidebar({
       )}
 
       {/* 桌面端窄轨道 + 悬浮滑出面板 */}
-      <div className="hidden md:block shrink-0 w-10 relative z-20">
+      <div className={`hidden md:block shrink-0 relative z-20 ${
+        expanded ? 'w-48' : 'w-10'
+      }`}>
         <div
           className="sticky"
           style={{
@@ -188,9 +190,11 @@ export default function GroupSidebar({
             paddingTop: paddingTop,
           }}
         >
-          <div className="relative h-full w-10">
+          <div className={`relative h-full ${
+            expanded ? 'w-48' : 'w-10'
+          }`}>
             <div
-              className="absolute inset-y-0 left-0 w-10 rounded-r-2xl border-r border-white/10 bg-gray-900/70 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
+              className="absolute inset-y-0 left-0 w-10 rounded-br-2xl border-r border-white/10 bg-gray-900/76 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
               onMouseEnter={openSidebar}
               onMouseLeave={closeSidebar}
             >
@@ -207,7 +211,7 @@ export default function GroupSidebar({
             </div>
 
             <div
-              className={`absolute inset-y-0 left-0 flex w-48 flex-col overflow-hidden rounded-r-2xl border-r border-white/10 bg-gray-900/88 shadow-[0_20px_50px_rgba(0,0,0,0.35)] transition-[transform,opacity] duration-200 ease-out ${
+              className={`absolute inset-y-0 left-0 flex w-48 flex-col overflow-hidden rounded-br-2xl border-r border-white/10 bg-gray-900/88 shadow-[0_20px_50px_rgba(0,0,0,0.35)] transition-[transform,opacity] duration-200 ease-out ${
                 expanded
                   ? 'translate-x-0 opacity-100 pointer-events-auto'
                   : '-translate-x-3 opacity-0 pointer-events-none'
