@@ -407,7 +407,11 @@ export default function AiAssistantPage({
                       }`}>
                         <div className="break-words text-sm leading-7">
                           {message.content ? (
-                            <MarkdownMessage content={message.content} />
+                            message.role === 'assistant' && message.streaming ? (
+                              <div className="whitespace-pre-wrap break-words">{message.content}</div>
+                            ) : (
+                              <MarkdownMessage content={message.content} />
+                            )
                           ) : message.role === 'assistant' && message.streaming ? (
                             <StreamingDots />
                           ) : '...'}

@@ -59,6 +59,7 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
   const [conversationsLoaded, setConversationsLoaded] = useState(false);
   const [streamingConversationId, setStreamingConversationId] = useState('');
   const staleStreamingCleanedRef = useRef(false);
+  const streamingDraftRef = useRef(null);
 
   const replaceConversation = useCallback((conversationId, updater) => {
     setConversations((prev) => {
@@ -80,6 +81,7 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
   useEffect(() => {
     if (!user) {
       staleStreamingCleanedRef.current = false;
+      streamingDraftRef.current = null;
       setAiConfig(DEFAULT_AI_ASSISTANT_CONFIG);
       setConversations([]);
       setActiveConversationId('');
@@ -89,6 +91,7 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
     }
 
     staleStreamingCleanedRef.current = false;
+    streamingDraftRef.current = null;
     setConfigLoaded(false);
     setConversationsLoaded(false);
 
@@ -111,7 +114,23 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
       query(CONVERSATIONS_COLLECTION, orderBy('updatedAt', 'desc')),
       (snapshot) => {
         const next = snapshot.docs.map(normalizeConversation);
-        setConversations(next);
+        const localStreamingConversation = streamingDraftRef.current;
+        if (!localStreamingConversation?.id) {
+          setConversations(next);
+          setConversationsLoaded(true);
+          return;
+        }
+
+        const hasStreamingConversation = next.some(item => item.id === localStreamingConversation.id);
+        const mergedConversations = hasStreamingConversation
+          ? next.map(item => (
+              item.id === localStreamingConversation.id
+                ? { ...item, ...localStreamingConversation, messages: localStreamingConversation.messages }
+                : item
+            ))
+          : [localStreamingConversation, ...next];
+
+        setConversations(mergedConversations);
         setConversationsLoaded(true);
       },
       () => {
@@ -242,6 +261,17 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
       { id: assistantMessageId, role: 'assistant', content: '', createdAt: Date.now(), sources: [], streaming: true },
     ];
     const nextTitle = buildTitle(draftMessages.find(item => item.role === 'user')?.content || content);
+    const applyLocalConversation = (messages, overrides = {}) => {
+      const nextConversation = {
+        ...currentConversation,
+        id: conversationId,
+        title: nextTitle,
+        messages,
+        ...overrides,
+      };
+      streamingDraftRef.current = nextConversation;
+      replaceConversation(conversationId, nextConversation);
+    };
 
     if (!conversationId || !currentConversation) {
       conversationId = await createConversation(content, {
@@ -253,11 +283,7 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
       await updateConversationMessages(conversationId, draftMessages, nextTitle);
     }
 
-    replaceConversation(conversationId, {
-      ...currentConversation,
-      title: nextTitle,
-      messages: draftMessages,
-    });
+    applyLocalConversation(draftMessages);
     setActiveConversationId(conversationId);
     setStreamingConversationId(conversationId);
 
@@ -327,25 +353,11 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
           const event = JSON.parse(trimmed);
           if (event.type === 'sources' && Array.isArray(event.data)) {
             assistantSources = event.data;
-            replaceConversation(conversationId, (conversation) => ({
-              ...conversation,
-              messages: conversation.messages.map(item => (
-                item.id === assistantMessageId
-                  ? { ...item, sources: assistantSources }
-                  : item
-              )),
-            }));
+            applyLocalConversation(buildMessagesSnapshot({ streaming: true }));
           }
           if (event.type === 'delta' && event.data) {
             assistantContent += event.data;
-            replaceConversation(conversationId, (conversation) => ({
-              ...conversation,
-              messages: conversation.messages.map(item => (
-                item.id === assistantMessageId
-                  ? { ...item, content: assistantContent, sources: assistantSources }
-                  : item
-              )),
-            }));
+            applyLocalConversation(buildMessagesSnapshot({ streaming: true }));
             if (Date.now() - lastPersistAt >= 600) {
               lastPersistAt = Date.now();
               void queuePersist(buildMessagesSnapshot({ streaming: true }));
@@ -363,11 +375,7 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
         streaming: false,
       });
 
-      replaceConversation(conversationId, {
-        ...currentConversation,
-        title: nextTitle,
-        messages: finalMessages,
-      });
+      applyLocalConversation(finalMessages);
       await queuePersist(finalMessages);
     } catch (error) {
       const fallbackContent = error?.message || '请求失败，请稍后重试。';
@@ -377,15 +385,12 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
         streaming: false,
         error: true,
       });
-      replaceConversation(conversationId, {
-        ...currentConversation,
-        title: nextTitle,
-        messages: finalMessages,
-      });
+      applyLocalConversation(finalMessages);
       await queuePersist(finalMessages);
       showToast(fallbackContent, 'error');
       throw error;
     } finally {
+      streamingDraftRef.current = null;
       setStreamingConversationId('');
     }
   }, [
