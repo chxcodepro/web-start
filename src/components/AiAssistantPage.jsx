@@ -79,7 +79,7 @@ export default function AiAssistantPage({
 
   const emptyHint = useMemo(() => {
     if (!isLoggedIn) return '登录后才能使用 AI 助手。';
-    if (!activeConversation) return '默认话题准备中。';
+    if (!activeConversation) return '发一条消息后会自动新建话题。';
     return '开始聊天吧。';
   }, [activeConversation, isLoggedIn]);
 
