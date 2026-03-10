@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowDown,
   Bot,
@@ -6,9 +6,11 @@ import {
   MessageSquarePlus,
   Send,
   Save,
+  Search,
   Settings,
   Sparkles,
   Trash2,
+  X,
 } from 'lucide-react';
 
 const formatTime = (value) => {
@@ -54,10 +56,26 @@ export default function AiAssistantPage({
   const [draft, setDraft] = useState('');
   const [searchConfig, setSearchConfig] = useState(() => pickSearchConfig(aiConfig));
   const [savingSearchConfig, setSavingSearchConfig] = useState(false);
+  const [showSearchPanel, setShowSearchPanel] = useState(false);
+  const searchPanelRef = useRef(null);
 
   useEffect(() => {
     setSearchConfig(pickSearchConfig(aiConfig));
   }, [aiConfig]);
+
+  useEffect(() => {
+    if (!showSearchPanel) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (searchPanelRef.current?.contains(event.target)) return;
+      setShowSearchPanel(false);
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+    };
+  }, [showSearchPanel]);
 
   const emptyHint = useMemo(() => {
     if (!isLoggedIn) return '登录后才能使用 AI 助手。';
@@ -102,6 +120,7 @@ export default function AiAssistantPage({
         ...aiConfig,
         ...searchConfig,
       });
+      setShowSearchPanel(false);
     } catch {
       // 提示由上层处理
     } finally {
@@ -279,84 +298,6 @@ export default function AiAssistantPage({
 
             <div className="border-t border-white/10 bg-white/[0.05] p-4 md:p-5">
               <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-                <div className="rounded-[26px] border border-white/10 bg-white/[0.06] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-medium text-white/88">联网搜索</p>
-                          <p className="mt-1 text-xs text-white/45">这里改的是聊天时用的搜索方式，需要时再点保存。</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setSearchConfig(prev => ({ ...prev, enableWebSearch: !prev.enableWebSearch }))}
-                          className={`relative h-6 w-11 rounded-full transition ${
-                            searchConfig.enableWebSearch ? 'bg-cyan-500/70' : 'bg-white/20'
-                          }`}
-                        >
-                          <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition ${
-                            searchConfig.enableWebSearch ? 'left-[22px]' : 'left-0.5'
-                          }`} />
-                        </button>
-                      </div>
-
-                      {searchConfig.enableWebSearch && (
-                        <>
-                          <div className="flex flex-wrap gap-2">
-                            {[
-                              { key: 'duckduckgo', label: 'DuckDuckGo' },
-                              { key: 'exa', label: 'Exa' },
-                              { key: 'openai', label: 'OpenAI 原生' },
-                            ].map((item) => (
-                              <button
-                                key={item.key}
-                                type="button"
-                                onClick={() => setSearchConfig(prev => ({ ...prev, searchMode: item.key }))}
-                                className={`rounded-2xl border px-3 py-2 text-xs transition ${
-                                  searchConfig.searchMode === item.key
-                                    ? 'border-cyan-300/25 bg-cyan-500/15 text-white'
-                                    : 'border-white/10 bg-white/[0.06] text-white/60 hover:bg-white/[0.1]'
-                                }`}
-                              >
-                                {item.label}
-                              </button>
-                            ))}
-                          </div>
-
-                          {searchConfig.searchMode === 'exa' && (
-                            <div className="space-y-2">
-                              <label className="block text-xs text-white/55">Exa 搜索 Key</label>
-                              <input
-                                type="password"
-                                value={searchConfig.searchApiKey}
-                                onChange={(event) => setSearchConfig(prev => ({ ...prev, searchApiKey: event.target.value }))}
-                                placeholder="不填就复用上面的主 API Key"
-                                className="w-full rounded-2xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl focus:border-cyan-400/70 focus:bg-white/[0.12] focus:outline-none"
-                              />
-                            </div>
-                          )}
-
-                          <p className="text-xs text-white/45">
-                            {searchConfig.searchMode === 'duckduckgo' && 'DuckDuckGo 不用额外 Key，兼容性最好。'}
-                            {searchConfig.searchMode === 'exa' && 'Exa 结果更干净，没填搜索 Key 就会复用主 API Key。'}
-                            {searchConfig.searchMode === 'openai' && 'OpenAI 原生搜索要求接口本身支持 Responses 和 web search。'}
-                          </p>
-                        </>
-                      )}
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleSaveSearchConfig}
-                      disabled={savingSearchConfig || !searchConfigDirty}
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-sm text-white transition hover:bg-white/[0.14] disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {savingSearchConfig ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                      {savingSearchConfig ? '保存中...' : searchConfigDirty ? '保存联网配置' : '已保存'}
-                    </button>
-                  </div>
-                </div>
-
                 <textarea
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
@@ -368,14 +309,114 @@ export default function AiAssistantPage({
                 />
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-xs text-white/35">回车发送，Shift + 回车换行。向下滚动可以返回导航页。</p>
-                  <button
-                    type="submit"
-                    disabled={!draft.trim() || isStreaming}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-cyan-500/80 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <Send size={14} />
-                    {isStreaming ? '生成中...' : '发送'}
-                  </button>
+                  <div className="relative flex items-center gap-2" ref={searchPanelRef}>
+                    <button
+                      type="button"
+                      onClick={() => setShowSearchPanel(prev => !prev)}
+                      className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm text-white transition ${
+                        showSearchPanel || searchConfig.enableWebSearch
+                          ? 'border-cyan-300/20 bg-cyan-500/12'
+                          : 'border-white/10 bg-white/[0.08] hover:bg-white/[0.14]'
+                      }`}
+                    >
+                      <Search size={14} />
+                      联网搜索
+                    </button>
+                    {showSearchPanel && (
+                      <div className="absolute bottom-full right-0 z-20 mb-2 w-[320px] rounded-[24px] border border-white/10 bg-slate-950/95 p-4 shadow-[0_24px_60px_rgba(4,10,25,0.42)] backdrop-blur-2xl">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-medium text-white/88">联网搜索</p>
+                            <p className="mt-1 text-xs text-white/45">这里改的是聊天时用的搜索方式。</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setShowSearchPanel(false)}
+                            className="rounded-full p-1 text-white/45 transition hover:bg-white/10 hover:text-white"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+
+                        <div className="mt-4 flex items-center justify-between gap-3">
+                          <span className="text-xs text-white/60">启用联网搜索</span>
+                          <button
+                            type="button"
+                            onClick={() => setSearchConfig(prev => ({ ...prev, enableWebSearch: !prev.enableWebSearch }))}
+                            className={`relative h-6 w-11 rounded-full transition ${
+                              searchConfig.enableWebSearch ? 'bg-cyan-500/70' : 'bg-white/20'
+                            }`}
+                          >
+                            <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition ${
+                              searchConfig.enableWebSearch ? 'left-[22px]' : 'left-0.5'
+                            }`} />
+                          </button>
+                        </div>
+
+                        {searchConfig.enableWebSearch && (
+                          <>
+                            <div className="mt-4 flex flex-wrap gap-2">
+                              {[
+                                { key: 'duckduckgo', label: 'DuckDuckGo' },
+                                { key: 'exa', label: 'Exa' },
+                                { key: 'openai', label: 'OpenAI 原生' },
+                              ].map((item) => (
+                                <button
+                                  key={item.key}
+                                  type="button"
+                                  onClick={() => setSearchConfig(prev => ({ ...prev, searchMode: item.key }))}
+                                  className={`rounded-2xl border px-3 py-2 text-xs transition ${
+                                    searchConfig.searchMode === item.key
+                                      ? 'border-cyan-300/25 bg-cyan-500/15 text-white'
+                                      : 'border-white/10 bg-white/[0.06] text-white/60 hover:bg-white/[0.1]'
+                                  }`}
+                                >
+                                  {item.label}
+                                </button>
+                              ))}
+                            </div>
+
+                            {searchConfig.searchMode === 'exa' && (
+                              <div className="mt-4 space-y-2">
+                                <label className="block text-xs text-white/55">Exa 搜索 Key</label>
+                                <input
+                                  type="password"
+                                  value={searchConfig.searchApiKey}
+                                  onChange={(event) => setSearchConfig(prev => ({ ...prev, searchApiKey: event.target.value }))}
+                                  placeholder="不填就复用上面的主 API Key"
+                                  className="w-full rounded-2xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl focus:border-cyan-400/70 focus:bg-white/[0.12] focus:outline-none"
+                                />
+                              </div>
+                            )}
+
+                            <p className="mt-4 text-xs text-white/45">
+                              {searchConfig.searchMode === 'duckduckgo' && 'DuckDuckGo 不用额外 Key，兼容性最好。'}
+                              {searchConfig.searchMode === 'exa' && 'Exa 结果更干净，没填搜索 Key 就会复用主 API Key。'}
+                              {searchConfig.searchMode === 'openai' && 'OpenAI 原生搜索要求接口本身支持 Responses 和 web search。'}
+                            </p>
+                          </>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={handleSaveSearchConfig}
+                          disabled={savingSearchConfig || !searchConfigDirty}
+                          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-sm text-white transition hover:bg-white/[0.14] disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {savingSearchConfig ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                          {savingSearchConfig ? '保存中...' : searchConfigDirty ? '保存联网配置' : '已保存'}
+                        </button>
+                      </div>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={!draft.trim() || isStreaming}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-cyan-500/80 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <Send size={14} />
+                      {isStreaming ? '生成中...' : '发送'}
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>
