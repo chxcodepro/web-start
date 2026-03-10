@@ -6,4 +6,5 @@ export { default as GroupModal } from './GroupModal';
 export { default as ImportModal } from './ImportModal';
 export { default as WebDavModal } from './WebDavModal';
 export { default as GitHubStarsSettingsModal } from './GitHubStarsSettingsModal';
+export { default as AiAssistantSettingsModal } from './AiAssistantSettingsModal';
 export { default as ChangelogModal } from './ChangelogModal';

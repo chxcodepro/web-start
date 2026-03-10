@@ -111,3 +111,13 @@ export const DEFAULT_STARS_CONFIG = {
     usePresetOnly: false, // 是否仅使用预设分组
   },
 };
+
+export const DEFAULT_AI_ASSISTANT_CONFIG = {
+  baseUrl: 'https://api.openai.com',
+  apiKey: '',
+  model: 'gpt-4o-mini',
+  systemPrompt: '你是我的私人 AI 助手。默认用中文回答，回答要直接、清楚、实用；需要联网时结合搜索结果给出结论，并尽量附上来源链接。',
+  enableWebSearch: true,
+  searchMode: 'duckduckgo',
+  searchApiKey: '',
+};

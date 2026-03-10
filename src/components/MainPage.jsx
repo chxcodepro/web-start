@@ -14,6 +14,7 @@ import {
   Upload,
   Star,
   Home,
+  Bot,
   Globe,
   Clock,
 } from 'lucide-react';
@@ -87,6 +88,8 @@ export default function MainPage({
   setIsWebDavModalOpen,
   setShowStarsPage,
   showStarsPage,
+  showAiPage,
+  onOpenAiPage,
   importInputRef,
   handleShowAdmin,
   handleRequestAdminExit,
@@ -95,6 +98,7 @@ export default function MainPage({
     <>
       {/* 左上角 Tab 导航 */}
       <PageTabs showStarsPage={showStarsPage} setShowStarsPage={setShowStarsPage} />
+      <AiRope visible={!showStarsPage && !showAiPage} onClick={onOpenAiPage} />
 
       {/* 管理员模式提示 */}
       {isAdmin && (
@@ -205,6 +209,23 @@ export default function MainPage({
         />
       </div>
     </>
+  );
+}
+
+function AiRope({ visible, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`fixed right-0 top-1/2 z-50 hidden -translate-y-1/2 items-center md:flex ${visible ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'} transition-opacity duration-300`}
+      title="进入 AI 助手"
+    >
+      <div className="flex items-center">
+        <div className="h-36 w-px bg-gradient-to-b from-transparent via-white/65 to-white/10 shadow-[0_0_18px_rgba(255,255,255,0.28)]" />
+        <div className="mr-3 flex h-14 w-14 items-center justify-center rounded-l-[24px] border border-r-0 border-white/15 bg-white/[0.12] text-cyan-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_40px_rgba(4,10,25,0.28)] backdrop-blur-2xl transition hover:bg-white/[0.18] hover:text-white">
+          <Bot size={18} />
+        </div>
+      </div>
+    </button>
   );
 }
 

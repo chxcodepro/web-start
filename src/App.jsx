@@ -1,5 +1,5 @@
 // 主应用组件
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Check, AlertTriangle } from 'lucide-react';
 
 // 组件
@@ -11,7 +11,9 @@ import {
   ImportModal,
   WebDavModal,
   GitHubStarsSettingsModal,
+  AiAssistantSettingsModal,
 } from './components/modals';
+import AiAssistantPage from './components/AiAssistantPage';
 import GitHubStarsPage from './components/stars/GitHubStarsPage';
 import LoadingPage from './components/LoadingPage';
 import MainPage from './components/MainPage';
@@ -24,6 +26,7 @@ import { useSearch } from './hooks/useSearch';
 import { useWebDav } from './hooks/useWebDav';
 import { useSiteManager } from './hooks/useSiteManager';
 import { useBookmarkImport } from './hooks/useBookmarkImport';
+import { useAiAssistant } from './hooks/useAiAssistant';
 
 // 工具函数和常量
 import { mergePagesToSingle } from './utils/helpers';
@@ -35,6 +38,7 @@ export default function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isBgModalOpen, setIsBgModalOpen] = useState(false);
   const [isAdminExitDialogOpen, setIsAdminExitDialogOpen] = useState(false);
+  const [showAiPage, setShowAiPage] = useState(false);
   const [adminHidden, setAdminHidden] = useState(() => {
     try {
       return localStorage.getItem('my-nav-admin-hidden') === 'true';
@@ -43,6 +47,7 @@ export default function App() {
     }
   });
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const aiScrollLockRef = useRef(false);
 
   // Toast 提示函数（使用 useCallback 保持引用稳定，避免触发下游 Hook 重复执行）
   const showToast = useCallback((message, type = 'success') => {
@@ -100,6 +105,7 @@ export default function App() {
   const handleConfirmLogout = useCallback(async () => {
     setIsAdminExitDialogOpen(false);
     setAdminHidden(false);
+    setShowAiPage(false);
     await handleLogout();
   }, [handleLogout]);
 
@@ -233,6 +239,99 @@ export default function App() {
     confirmImportBookmarks,
   } = bookmark;
 
+  const aiAssistant = useAiAssistant({ user, getApiAuthHeaders, showToast });
+  const {
+    aiConfig,
+    conversations,
+    activeConversation,
+    activeConversationId,
+    setActiveConversationId,
+    isAiSettingsOpen,
+    setIsAiSettingsOpen,
+    streamingConversationId,
+    saveAiConfig,
+    createConversation,
+    deleteConversation,
+    sendMessage,
+  } = aiAssistant;
+
+  const openAiPage = useCallback(() => {
+    if (!hasLoginSession) {
+      setIsLoginModalOpen(true);
+      return;
+    }
+    setShowAiPage(true);
+  }, [hasLoginSession]);
+
+  const closeAiPage = useCallback(() => {
+    setShowAiPage(false);
+  }, []);
+
+  const handleFetchAiModels = useCallback(async ({ baseUrl, apiKey }) => {
+    const headers = await getApiAuthHeaders();
+    const response = await fetch('/api/ai-models', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ baseUrl, apiKey }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload?.error || '获取模型失败');
+    }
+    return payload.models || [];
+  }, [getApiAuthHeaders]);
+
+  const handleValidateAiConfig = useCallback(async (config) => {
+    const headers = await getApiAuthHeaders();
+    const response = await fetch('/api/ai-validate', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ config }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload?.error || '配置验证失败');
+    }
+    return payload;
+  }, [getApiAuthHeaders]);
+
+  useEffect(() => {
+    if (!hasLoginSession && showAiPage) {
+      setShowAiPage(false);
+    }
+  }, [hasLoginSession, showAiPage]);
+
+  useEffect(() => {
+    document.body.style.overflow = showAiPage ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showAiPage]);
+
+  useEffect(() => {
+    if (showStarsPage) return undefined;
+
+    const handleWheelOpenAi = (event) => {
+      if (showAiPage || aiScrollLockRef.current) return;
+      const target = event.target;
+      const tagName = target?.tagName?.toLowerCase?.();
+      if (['input', 'textarea', 'select'].includes(tagName) || target?.isContentEditable) {
+        return;
+      }
+      if (window.scrollY > 24) return;
+      if (event.deltaY < -45) {
+        aiScrollLockRef.current = true;
+        openAiPage();
+        window.setTimeout(() => {
+          aiScrollLockRef.current = false;
+        }, 900);
+      }
+    };
+
+    window.addEventListener('wheel', handleWheelOpenAi, { passive: true });
+    return () => window.removeEventListener('wheel', handleWheelOpenAi);
+  }, [openAiPage, showAiPage, showStarsPage]);
+
   // 加载状态
   if (isLoading) {
     return (
@@ -296,9 +395,26 @@ export default function App() {
       <div className="fixed inset-0 z-0 bg-gray-900/50" />
 
       {/* 主内容 */}
+      <AiAssistantPage
+        visible={showAiPage}
+        onClose={closeAiPage}
+        isLoggedIn={hasLoginSession}
+        onRequireLogin={() => setIsLoginModalOpen(true)}
+        aiConfig={aiConfig}
+        conversations={conversations}
+        activeConversation={activeConversation}
+        activeConversationId={activeConversationId}
+        setActiveConversationId={setActiveConversationId}
+        onCreateConversation={createConversation}
+        onDeleteConversation={deleteConversation}
+        onSendMessage={sendMessage}
+        onOpenSettings={() => setIsAiSettingsOpen(true)}
+        streamingConversationId={streamingConversationId}
+      />
       <MainPage
         isAdmin={isAdminVisible}
         hasLoginSession={hasLoginSession}
+        showAiPage={showAiPage}
         activePage={activePage}
         // 搜索
         searchQuery={searchQuery}
@@ -348,6 +464,7 @@ export default function App() {
         setIsWebDavModalOpen={setIsWebDavModalOpen}
         setShowStarsPage={setShowStarsPage}
         showStarsPage={showStarsPage}
+        onOpenAiPage={openAiPage}
         importInputRef={importInputRef}
         handleShowAdmin={handleShowAdmin}
         handleRequestAdminExit={handleRequestAdminExit}
@@ -421,6 +538,16 @@ export default function App() {
           onStartOAuth={handleStartOAuth}
           onResetGroups={handleResetGroups}
           reposCount={starsRepos.length}
+        />
+      )}
+      {isAiSettingsOpen && (
+        <AiAssistantSettingsModal
+          isOpen={isAiSettingsOpen}
+          onClose={() => setIsAiSettingsOpen(false)}
+          initialConfig={aiConfig}
+          onSave={saveAiConfig}
+          onFetchModels={handleFetchAiModels}
+          onValidate={handleValidateAiConfig}
         />
       )}
 
