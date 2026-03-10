@@ -153,7 +153,7 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
     const title = String(options.title || '').trim() || buildTitle(seedText);
     const ref = await addDoc(CONVERSATIONS_COLLECTION, {
       title,
-      messages: [],
+      messages: Array.isArray(options.messages) ? options.messages : [],
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
@@ -167,13 +167,6 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
     showToast('对话已删除');
   }, [showToast]);
 
-  const deleteConversations = useCallback(async (conversationIds) => {
-    const ids = Array.isArray(conversationIds) ? [...new Set(conversationIds.filter(Boolean))] : [];
-    if (!ids.length) return;
-    await Promise.all(ids.map(id => deleteDoc(doc(db, 'ai_assistant_conversations', id))));
-    showToast(`已删除 ${ids.length} 个话题`);
-  }, [showToast]);
-
   const updateConversationMessages = useCallback(async (conversationId, messages, title) => {
     await updateDoc(doc(db, 'ai_assistant_conversations', conversationId), {
       title,
@@ -182,7 +175,7 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
     });
   }, []);
 
-  const sendMessage = useCallback(async (text, configOverride = {}) => {
+  const sendMessage = useCallback(async (text, configOverride = {}, replayMessageId = '') => {
     const content = String(text || '').trim();
     if (!content) return;
     if (!user) {
@@ -196,20 +189,33 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
 
     let conversationId = activeConversationId;
     let currentConversation = activeConversation;
-
-    if (!conversationId || !currentConversation) {
-      conversationId = await createConversation(content);
-      currentConversation = { id: conversationId, title: buildTitle(content), messages: [] };
-    }
-
-    const userMessage = createMessage('user', content);
-    const assistantMessageId = `assistant-${Date.now()}`;
+    const currentMessages = currentConversation?.messages || [];
+    const replayIndex = replayMessageId
+      ? currentMessages.findIndex(item => item.id === replayMessageId && item.role === 'user')
+      : -1;
+    const isReplay = replayIndex >= 0;
+    const replayUserMessage = isReplay ? { ...currentMessages[replayIndex], content } : null;
+    const userMessage = replayUserMessage || createMessage('user', content);
+    const assistantMessageId = isReplay
+      ? `assistant-replay-${Date.now()}`
+      : `assistant-${Date.now()}`;
+    const baseMessages = isReplay ? currentMessages.slice(0, replayIndex) : currentMessages;
     const draftMessages = [
-      ...(currentConversation.messages || []),
+      ...baseMessages,
       userMessage,
       { id: assistantMessageId, role: 'assistant', content: '', createdAt: Date.now(), sources: [], streaming: true },
     ];
-    const nextTitle = currentConversation.messages?.length ? currentConversation.title : buildTitle(content);
+    const nextTitle = buildTitle(draftMessages.find(item => item.role === 'user')?.content || content);
+
+    if (!conversationId || !currentConversation) {
+      conversationId = await createConversation(content, {
+        title: nextTitle,
+        messages: draftMessages,
+      });
+      currentConversation = { id: conversationId, title: nextTitle, messages: [] };
+    } else {
+      await updateConversationMessages(conversationId, draftMessages, nextTitle);
+    }
 
     replaceConversation(conversationId, {
       ...currentConversation,
@@ -231,7 +237,7 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
           config: effectiveAiConfig,
           messages: draftMessages
             .filter(item => item.role === 'user' || item.role === 'assistant')
-            .map(item => ({ role: item.role, content: item.content })),
+            .map(item => ({ role: item.role, content: item.content || '' })),
         }),
       });
 
@@ -346,7 +352,6 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
     saveAiConfig,
     createConversation,
     deleteConversation,
-    deleteConversations,
     sendMessage,
   };
 }

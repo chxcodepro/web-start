@@ -251,7 +251,6 @@ export default function App() {
     saveAiConfig,
     createConversation,
     deleteConversation,
-    deleteConversations,
     sendMessage,
   } = aiAssistant;
 
@@ -425,7 +424,6 @@ export default function App() {
           setActiveConversationId={setActiveConversationId}
           onCreateConversation={createConversation}
           onDeleteConversation={deleteConversation}
-          onDeleteConversations={deleteConversations}
           onSendMessage={sendMessage}
           onSaveConfig={saveAiConfig}
           onOpenSettings={() => setIsAiSettingsOpen(true)}

@@ -4,7 +4,6 @@ import remarkGfm from 'remark-gfm';
 import {
   ArrowDown,
   Bot,
-  CheckSquare,
   Copy,
   Loader2,
   MessageSquarePlus,
@@ -13,7 +12,6 @@ import {
   Save,
   Search,
   Settings,
-  Square,
   Sparkles,
   Trash2,
   X,
@@ -87,7 +85,6 @@ export default function AiAssistantPage({
   setActiveConversationId,
   onCreateConversation,
   onDeleteConversation,
-  onDeleteConversations,
   onSendMessage,
   onSaveConfig,
   onOpenSettings,
@@ -97,9 +94,8 @@ export default function AiAssistantPage({
   const [searchConfig, setSearchConfig] = useState(() => pickSearchConfig(aiConfig));
   const [savingSearchConfig, setSavingSearchConfig] = useState(false);
   const [showSearchPanel, setShowSearchPanel] = useState(false);
-  const [conversationBatchMode, setConversationBatchMode] = useState(false);
-  const [selectedConversationIds, setSelectedConversationIds] = useState([]);
   const [copiedMessageId, setCopiedMessageId] = useState('');
+  const [replayingMessageId, setReplayingMessageId] = useState('');
   const searchPanelRef = useRef(null);
   const textareaRef = useRef(null);
   const copiedTimerRef = useRef(0);
@@ -107,6 +103,10 @@ export default function AiAssistantPage({
   useEffect(() => {
     setSearchConfig(pickSearchConfig(aiConfig));
   }, [aiConfig]);
+
+  useEffect(() => {
+    setReplayingMessageId('');
+  }, [activeConversationId]);
 
   useEffect(() => {
     if (!showSearchPanel) return undefined;
@@ -122,10 +122,6 @@ export default function AiAssistantPage({
     };
   }, [showSearchPanel]);
 
-  useEffect(() => {
-    setSelectedConversationIds((prev) => prev.filter(id => conversations.some(item => item.id === id)));
-  }, [conversations]);
-
   useEffect(() => () => {
     window.clearTimeout(copiedTimerRef.current);
   }, []);
@@ -137,7 +133,6 @@ export default function AiAssistantPage({
 
   const isStreaming = Boolean(streamingConversationId);
   const searchConfigDirty = JSON.stringify(searchConfig) !== JSON.stringify(pickSearchConfig(aiConfig));
-  const selectedConversationCount = selectedConversationIds.length;
 
   const submitDraft = async () => {
     if (!isLoggedIn) {
@@ -148,7 +143,8 @@ export default function AiAssistantPage({
     if (!text) return;
     setDraft('');
     try {
-      await onSendMessage?.(text, searchConfig);
+      await onSendMessage?.(text, searchConfig, replayingMessageId);
+      setReplayingMessageId('');
     } catch {
       // 提示由上层处理
     }
@@ -181,41 +177,13 @@ export default function AiAssistantPage({
     }
   };
 
-  const toggleConversationSelection = (conversationId) => {
-    setSelectedConversationIds((prev) => (
-      prev.includes(conversationId)
-        ? prev.filter(id => id !== conversationId)
-        : [...prev, conversationId]
-    ));
-  };
-
   const handleConversationClick = (conversationId) => {
-    if (conversationBatchMode) {
-      toggleConversationSelection(conversationId);
-      return;
-    }
     setActiveConversationId?.(conversationId);
-  };
-
-  const handleToggleBatchMode = () => {
-    setConversationBatchMode((prev) => {
-      const next = !prev;
-      if (!next) {
-        setSelectedConversationIds([]);
-      }
-      return next;
-    });
-  };
-
-  const handleDeleteSelectedConversations = async () => {
-    if (!selectedConversationCount) return;
-    await onDeleteConversations?.(selectedConversationIds);
-    setSelectedConversationIds([]);
-    setConversationBatchMode(false);
   };
 
   const handleReplayMessage = (message) => {
     setDraft(String(message?.content || ''));
+    setReplayingMessageId(message?.id || '');
     setTimeout(() => {
       textareaRef.current?.focus();
       const length = textareaRef.current?.value?.length || 0;
@@ -293,7 +261,7 @@ export default function AiAssistantPage({
                 <p className="text-xs font-medium uppercase tracking-[0.3em] text-white/35">会话列表</p>
                 <p className="mt-2 text-sm text-white/55">{conversations.length} 个对话</p>
               </div>
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-3">
                 <button
                   onClick={() => {
                     if (!isLoggedIn) return onRequireLogin?.();
@@ -304,78 +272,41 @@ export default function AiAssistantPage({
                   <MessageSquarePlus size={15} />
                   新建话题
                 </button>
-                <button
-                  type="button"
-                  onClick={handleToggleBatchMode}
-                  className={`inline-flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm transition ${
-                    conversationBatchMode
-                      ? 'border-amber-300/25 bg-amber-500/12 text-white'
-                      : 'border-white/10 bg-white/[0.08] text-white/80 hover:bg-white/[0.14] hover:text-white'
-                  }`}
-                >
-                  <CheckSquare size={15} />
-                  {conversationBatchMode ? '取消批量' : '批量删除'}
-                </button>
-                {conversationBatchMode && (
-                  <button
-                    type="button"
-                    onClick={handleDeleteSelectedConversations}
-                    disabled={!selectedConversationCount}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-red-300/15 bg-red-500/12 px-3 py-2 text-sm text-white transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-45"
-                  >
-                    <Trash2 size={15} />
-                    {selectedConversationCount ? `删除 ${selectedConversationCount}` : '删除'}
-                  </button>
-                )}
               </div>
             </div>
             <div className="custom-scrollbar flex-1 space-y-2 overflow-y-auto p-3">
               {conversations.map((conversation) => {
-                const preview = conversation.messages?.[conversation.messages.length - 1]?.content || '还没有消息';
+                const preview = [...(conversation.messages || [])]
+                  .reverse()
+                  .find(item => String(item?.content || '').trim())?.content || '还没有消息';
                 const active = conversation.id === activeConversationId;
-                const selected = selectedConversationIds.includes(conversation.id);
                 return (
                   <div
                     key={conversation.id}
                     className={`w-full rounded-[22px] border px-3 py-3 text-left transition ${
-                      conversationBatchMode && selected
-                        ? 'border-red-300/25 bg-red-500/10'
-                        : active
+                      active
                         ? 'border-cyan-300/25 bg-cyan-400/10 shadow-[0_18px_40px_rgba(14,116,144,0.18)]'
                         : 'border-white/8 bg-white/[0.05] hover:bg-white/[0.1]'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <div className="flex min-w-0 flex-1 items-start gap-2">
-                        {conversationBatchMode && (
-                          <button
-                            type="button"
-                            onClick={() => toggleConversationSelection(conversation.id)}
-                            className="mt-0.5 rounded-full p-0.5 text-white/60 transition hover:text-white"
-                          >
-                            {selected ? <CheckSquare size={16} /> : <Square size={16} />}
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => handleConversationClick(conversation.id)}
-                          className="min-w-0 flex-1 text-left"
-                        >
-                          <p className="truncate text-sm font-medium text-white/90">{conversation.title}</p>
-                          <p className="mt-1 line-clamp-2 text-xs leading-5 text-white/45">{preview}</p>
-                        </button>
-                      </div>
-                      {!conversationBatchMode && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onDeleteConversation?.(conversation.id);
-                          }}
-                          className="rounded-full p-1.5 text-white/30 transition hover:bg-white/10 hover:text-red-300"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleConversationClick(conversation.id)}
+                        className="min-w-0 flex-1 text-left"
+                      >
+                        <p className="truncate text-sm font-medium text-white/90">{conversation.title}</p>
+                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-white/45">{preview}</p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onDeleteConversation?.(conversation.id);
+                        }}
+                        className="rounded-full p-1.5 text-white/30 transition hover:bg-white/10 hover:text-red-300"
+                      >
+                        <Trash2 size={13} />
+                      </button>
                     </div>
                     <p className="mt-3 text-[11px] text-white/30">{formatTime(conversation.updatedAt || conversation.createdAt)}</p>
                   </div>
@@ -393,7 +324,7 @@ export default function AiAssistantPage({
             </div>
 
             <div className="border-b border-white/10 px-4 py-3 lg:hidden">
-              <div className="mb-3 flex flex-wrap gap-2">
+              <div className="mb-3">
                 <button
                   type="button"
                   onClick={() => {
@@ -405,51 +336,22 @@ export default function AiAssistantPage({
                   <MessageSquarePlus size={15} />
                   新建话题
                 </button>
-                <button
-                  type="button"
-                  onClick={handleToggleBatchMode}
-                  className={`inline-flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm transition ${
-                    conversationBatchMode
-                      ? 'border-amber-300/25 bg-amber-500/12 text-white'
-                      : 'border-white/10 bg-white/[0.08] text-white/80 hover:bg-white/[0.14] hover:text-white'
-                  }`}
-                >
-                  <CheckSquare size={15} />
-                  {conversationBatchMode ? '取消批量' : '批量删除'}
-                </button>
-                {conversationBatchMode && (
-                  <button
-                    type="button"
-                    onClick={handleDeleteSelectedConversations}
-                    disabled={!selectedConversationCount}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-red-300/15 bg-red-500/12 px-3 py-2 text-sm text-white transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-45"
-                  >
-                    <Trash2 size={15} />
-                    {selectedConversationCount ? `删除 ${selectedConversationCount}` : '删除'}
-                  </button>
-                )}
               </div>
               <div className="custom-scrollbar flex gap-2 overflow-x-auto">
-                {conversations.map((conversation) => {
-                  const selected = selectedConversationIds.includes(conversation.id);
-                  return (
-                    <button
-                      key={conversation.id}
-                      type="button"
-                      onClick={() => handleConversationClick(conversation.id)}
-                      className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${
-                        conversationBatchMode && selected
-                          ? 'border-red-300/20 bg-red-500/12 text-white'
-                          : conversation.id === activeConversationId
-                            ? 'border-cyan-300/25 bg-cyan-400/10 text-white'
-                            : 'border-white/10 bg-white/[0.06] text-white/55'
-                      }`}
-                    >
-                      {conversationBatchMode && (selected ? '已选 · ' : '选择 · ')}
-                      {conversation.title}
-                    </button>
-                  );
-                })}
+                {conversations.map((conversation) => (
+                  <button
+                    key={conversation.id}
+                    type="button"
+                    onClick={() => handleConversationClick(conversation.id)}
+                    className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${
+                      conversation.id === activeConversationId
+                        ? 'border-cyan-300/25 bg-cyan-400/10 text-white'
+                        : 'border-white/10 bg-white/[0.06] text-white/55'
+                    }`}
+                  >
+                    {conversation.title}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -483,19 +385,21 @@ export default function AiAssistantPage({
                           <button
                             type="button"
                             onClick={() => handleCopyMessage(message)}
-                            className="inline-flex items-center gap-1 transition hover:text-white"
+                            className="inline-flex items-center transition hover:text-white"
+                            title={copiedMessageId === message.id ? '已复制' : '复制'}
                           >
                             <Copy size={12} />
-                            {copiedMessageId === message.id ? '已复制' : '复制'}
                           </button>
                           {message.role === 'user' && (
                             <button
                               type="button"
                               onClick={() => handleReplayMessage(message)}
-                              className="inline-flex items-center gap-1 transition hover:text-white"
+                              className={`inline-flex items-center transition hover:text-white ${
+                                replayingMessageId === message.id ? 'text-cyan-200' : ''
+                              }`}
+                              title="修改后重放"
                             >
                               <RotateCcw size={12} />
-                              修改后重放
                             </button>
                           )}
                         </div>
@@ -640,7 +544,7 @@ export default function AiAssistantPage({
                     className="inline-flex items-center gap-2 rounded-2xl bg-cyan-500/80 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Send size={14} />
-                    {isStreaming ? '生成中...' : '发送'}
+                    {isStreaming ? '生成中...' : replayingMessageId ? '重放' : '发送'}
                   </button>
                 </div>
               </form>
