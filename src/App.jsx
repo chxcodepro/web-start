@@ -281,20 +281,6 @@ export default function App() {
     return payload.models || [];
   }, [getApiAuthHeaders]);
 
-  const handleValidateAiConfig = useCallback(async (config) => {
-    const headers = await getApiAuthHeaders();
-    const response = await fetch('/api/ai-validate', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ config }),
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(payload?.error || '配置验证失败');
-    }
-    return payload;
-  }, [getApiAuthHeaders]);
-
   useEffect(() => {
     if (!hasLoginSession && showAiPage) {
       setShowAiPage(false);
@@ -435,6 +421,7 @@ export default function App() {
         onCreateConversation={createConversation}
         onDeleteConversation={deleteConversation}
         onSendMessage={sendMessage}
+        onSaveConfig={saveAiConfig}
         onOpenSettings={() => setIsAiSettingsOpen(true)}
         streamingConversationId={streamingConversationId}
       />
@@ -574,7 +561,6 @@ export default function App() {
           initialConfig={aiConfig}
           onSave={saveAiConfig}
           onFetchModels={handleFetchAiModels}
-          onValidate={handleValidateAiConfig}
         />
       )}
 

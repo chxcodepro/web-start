@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   addDoc,
   collection,
@@ -50,6 +50,8 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
   const [configLoaded, setConfigLoaded] = useState(false);
   const [conversationsLoaded, setConversationsLoaded] = useState(false);
   const [streamingConversationId, setStreamingConversationId] = useState('');
+  const creatingDefaultConversationRef = useRef(false);
+  const defaultConversationInitializedRef = useRef(false);
 
   const replaceConversation = useCallback((conversationId, updater) => {
     setConversations((prev) => {
@@ -73,6 +75,8 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
       setAiConfig(DEFAULT_AI_ASSISTANT_CONFIG);
       setConversations([]);
       setActiveConversationId('');
+      creatingDefaultConversationRef.current = false;
+      defaultConversationInitializedRef.current = false;
       setConfigLoaded(true);
       setConversationsLoaded(true);
       return undefined;
@@ -146,11 +150,11 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
     showToast('AI 助手配置已保存');
   }, [user, showToast]);
 
-  const createConversation = useCallback(async (seedText = '') => {
+  const createConversation = useCallback(async (seedText = '', options = {}) => {
     if (!user) {
       throw new Error('请先登录管理员账号');
     }
-    const title = buildTitle(seedText);
+    const title = String(options.title || '').trim() || buildTitle(seedText);
     const ref = await addDoc(CONVERSATIONS_COLLECTION, {
       title,
       messages: [],
@@ -160,6 +164,25 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
     setActiveConversationId(ref.id);
     return ref.id;
   }, [user]);
+
+  useEffect(() => {
+    if (!user || !conversationsLoaded) return;
+    if (defaultConversationInitializedRef.current) return;
+    if (conversations.length) {
+      defaultConversationInitializedRef.current = true;
+      return;
+    }
+    if (creatingDefaultConversationRef.current) return;
+
+    creatingDefaultConversationRef.current = true;
+    createConversation('', { title: '默认话题' })
+      .then(() => {
+        defaultConversationInitializedRef.current = true;
+      })
+      .catch(() => {
+        creatingDefaultConversationRef.current = false;
+      });
+  }, [conversations.length, conversationsLoaded, createConversation, user]);
 
   const deleteConversation = useCallback(async (conversationId) => {
     if (!conversationId) return;
@@ -175,12 +198,17 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
     });
   }, []);
 
-  const sendMessage = useCallback(async (text) => {
+  const sendMessage = useCallback(async (text, configOverride = {}) => {
     const content = String(text || '').trim();
     if (!content) return;
     if (!user) {
       throw new Error('请先登录管理员账号');
     }
+
+    const effectiveAiConfig = {
+      ...aiConfig,
+      ...(configOverride || {}),
+    };
 
     let conversationId = activeConversationId;
     let currentConversation = activeConversation;
@@ -204,6 +232,7 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
       title: nextTitle,
       messages: draftMessages,
     });
+    setActiveConversationId(conversationId);
     setStreamingConversationId(conversationId);
 
     let assistantContent = '';
@@ -215,7 +244,7 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          config: aiConfig,
+          config: effectiveAiConfig,
           messages: draftMessages
             .filter(item => item.role === 'user' || item.role === 'assistant')
             .map(item => ({ role: item.role, content: item.content })),
