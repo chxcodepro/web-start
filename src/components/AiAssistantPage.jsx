@@ -79,7 +79,6 @@ export default function AiAssistantPage({
 
   const emptyHint = useMemo(() => {
     if (!isLoggedIn) return '登录后才能使用 AI 助手。';
-    if (!activeConversation) return '发一条消息后会自动新建话题。';
     return '开始聊天吧。';
   }, [activeConversation, isLoggedIn]);
 
@@ -154,16 +153,6 @@ export default function AiAssistantPage({
               <button
                 onClick={() => {
                   if (!isLoggedIn) return onRequireLogin?.();
-                  onCreateConversation?.();
-                }}
-                className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.08] px-3 py-2 text-sm text-white/80 transition hover:bg-white/[0.14] hover:text-white"
-              >
-                <MessageSquarePlus size={15} />
-                新建对话
-              </button>
-              <button
-                onClick={() => {
-                  if (!isLoggedIn) return onRequireLogin?.();
                   onOpenSettings?.();
                 }}
                 className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.08] px-3 py-2 text-sm text-white/80 transition hover:bg-white/[0.14] hover:text-white"
@@ -178,8 +167,22 @@ export default function AiAssistantPage({
         <div className="mx-auto flex h-[calc(100vh-4rem)] w-full max-w-[1700px] gap-4 px-4 py-4 md:px-8">
           <aside className="hidden w-[320px] shrink-0 overflow-hidden rounded-[28px] border border-white/12 bg-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_54px_rgba(4,10,25,0.22)] backdrop-blur-2xl lg:flex lg:flex-col">
             <div className="border-b border-white/10 px-4 py-4">
-              <p className="text-xs font-medium uppercase tracking-[0.3em] text-white/35">会话列表</p>
-              <p className="mt-2 text-sm text-white/55">{conversations.length} 个对话</p>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.3em] text-white/35">会话列表</p>
+                  <p className="mt-2 text-sm text-white/55">{conversations.length} 个对话</p>
+                </div>
+                <button
+                  onClick={() => {
+                    if (!isLoggedIn) return onRequireLogin?.();
+                    onCreateConversation?.();
+                  }}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.08] px-3 py-2 text-sm text-white/80 transition hover:bg-white/[0.14] hover:text-white"
+                >
+                  <MessageSquarePlus size={15} />
+                  新建话题
+                </button>
+              </div>
             </div>
             <div className="custom-scrollbar flex-1 space-y-2 overflow-y-auto p-3">
               {conversations.map((conversation) => {
@@ -252,7 +255,7 @@ export default function AiAssistantPage({
                     <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-500/15 text-cyan-300">
                       <Bot size={24} />
                     </div>
-                    <h3 className="mt-4 text-xl font-semibold text-white">AI 助手待命中</h3>
+                    <h3 className="mt-4 text-xl font-semibold text-white">开始聊天吧</h3>
                     <p className="mt-3 text-sm leading-7 text-white/55">{emptyHint}</p>
                   </div>
                 </div>
