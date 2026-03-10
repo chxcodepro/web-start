@@ -175,7 +175,7 @@ export default function AiAssistantSettingsModal({
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-500/80 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-            {saving ? '保存中...' : '直接保存'}
+            {saving ? '保存中...' : '保存'}
           </button>
         </div>
       </div>

@@ -42,6 +42,14 @@ const buildTitle = (text) => {
   return trimmed.length > 18 ? `${trimmed.slice(0, 18)}...` : trimmed;
 };
 
+const finalizeStreamingMessages = (messages, extra = {}) => (
+  (Array.isArray(messages) ? messages : []).map(item => (
+    item?.streaming
+      ? { ...item, streaming: false, ...extra }
+      : item
+  ))
+);
+
 export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
   const [aiConfig, setAiConfig] = useState(DEFAULT_AI_ASSISTANT_CONFIG);
   const [conversations, setConversations] = useState([]);
@@ -175,6 +183,27 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
     });
   }, []);
 
+  useEffect(() => {
+    if (!user || streamingConversationId) return;
+
+    const staleConversations = conversations.filter(conversation => (
+      Array.isArray(conversation.messages) && conversation.messages.some(message => message?.streaming)
+    ));
+
+    if (!staleConversations.length) return;
+
+    staleConversations.forEach((conversation) => {
+      const cleanedMessages = finalizeStreamingMessages(conversation.messages);
+      replaceConversation(conversation.id, {
+        ...conversation,
+        messages: cleanedMessages,
+      });
+      void updateConversationMessages(conversation.id, cleanedMessages, conversation.title).catch(() => {
+        // 忽略收尾失败，下次进入继续清理
+      });
+    });
+  }, [conversations, replaceConversation, streamingConversationId, updateConversationMessages, user]);
+
   const sendMessage = useCallback(async (text, configOverride = {}, replayMessageId = '') => {
     const content = String(text || '').trim();
     if (!content) return;
@@ -227,6 +256,26 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
 
     let assistantContent = '';
     let assistantSources = [];
+    let lastPersistAt = Date.now();
+    let persistChain = Promise.resolve();
+
+    const buildMessagesSnapshot = (extra = {}) => draftMessages.map(item => (
+      item.id === assistantMessageId
+        ? {
+            ...item,
+            content: assistantContent,
+            sources: assistantSources,
+            ...extra,
+          }
+        : item
+    ));
+
+    const queuePersist = (messages) => {
+      persistChain = persistChain
+        .catch(() => {})
+        .then(() => updateConversationMessages(conversationId, messages, nextTitle));
+      return persistChain;
+    };
 
     try {
       const headers = await getApiAuthHeaders();
@@ -290,6 +339,10 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
                   : item
               )),
             }));
+            if (Date.now() - lastPersistAt >= 600) {
+              lastPersistAt = Date.now();
+              void queuePersist(buildMessagesSnapshot({ streaming: true }));
+            }
           }
           if (event.type === 'error') {
             throw new Error(event.data || 'AI 助手请求失败');
@@ -297,31 +350,32 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
         });
       }
 
-      const finalMessages = draftMessages.map(item => (
-        item.id === assistantMessageId
-          ? { ...item, content: assistantContent || '没有收到有效回复', sources: assistantSources, streaming: false }
-          : item
-      ));
+      const finalMessages = buildMessagesSnapshot({
+        content: assistantContent || '没有收到有效回复',
+        sources: assistantSources,
+        streaming: false,
+      });
 
       replaceConversation(conversationId, {
         ...currentConversation,
         title: nextTitle,
         messages: finalMessages,
       });
-      await updateConversationMessages(conversationId, finalMessages, nextTitle);
+      await queuePersist(finalMessages);
     } catch (error) {
       const fallbackContent = error?.message || '请求失败，请稍后重试。';
-      const finalMessages = draftMessages.map(item => (
-        item.id === assistantMessageId
-          ? { ...item, content: fallbackContent, sources: assistantSources, streaming: false, error: true }
-          : item
-      ));
+      const finalMessages = buildMessagesSnapshot({
+        content: assistantContent || fallbackContent,
+        sources: assistantSources,
+        streaming: false,
+        error: true,
+      });
       replaceConversation(conversationId, {
         ...currentConversation,
         title: nextTitle,
         messages: finalMessages,
       });
-      await updateConversationMessages(conversationId, finalMessages, nextTitle);
+      await queuePersist(finalMessages);
       showToast(fallbackContent, 'error');
       throw error;
     } finally {
