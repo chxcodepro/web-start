@@ -23,8 +23,8 @@ export default function VersionTag({ isAdmin }) {
     setHasNewVersion(false);
   };
 
-  // 只有登录后且有新版本时才显示
-  if (!isAdmin || !hasNewVersion) {
+  // 有新版本时才显示
+  if (!hasNewVersion) {
     return (
       <ChangelogModal
         isOpen={isChangelogOpen}

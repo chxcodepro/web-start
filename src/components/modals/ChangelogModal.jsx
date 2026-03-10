@@ -48,7 +48,7 @@ export default function ChangelogModal({ isOpen, onClose }) {
         </div>
 
         {/* 内容区域 */}
-        <div className="flex-1 overflow-y-auto p-6 pt-4">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-6 pt-4">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <div className="w-6 h-6 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
