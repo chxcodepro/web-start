@@ -4,7 +4,7 @@ import { Sparkles } from 'lucide-react';
 import ChangelogModal from './modals/ChangelogModal';
 import { APP_VERSION } from '../utils/constants';
 
-export default function VersionTag({ isAdmin }) {
+export default function VersionTag() {
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
   const [hasNewVersion, setHasNewVersion] = useState(false);
 

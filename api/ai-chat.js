@@ -13,6 +13,148 @@ const writeEvent = (res, payload) => {
   res.write(`${JSON.stringify(payload)}\n`);
 };
 
+const extractTextFromContent = (content) => {
+  if (typeof content === 'string') {
+    return content;
+  }
+
+  if (Array.isArray(content)) {
+    return content
+      .map((item) => {
+        if (typeof item === 'string') return item;
+        if (typeof item?.text === 'string') return item.text;
+        if (typeof item?.content === 'string') return item.content;
+        if (typeof item?.value === 'string') return item.value;
+        return '';
+      })
+      .join('');
+  }
+
+  if (typeof content?.text === 'string') {
+    return content.text;
+  }
+
+  return '';
+};
+
+const extractTextFromOutput = (output = []) => (
+  (Array.isArray(output) ? output : [])
+    .map((item) => {
+      if (typeof item?.text === 'string') return item.text;
+      if (typeof item?.content === 'string') return item.content;
+      if (Array.isArray(item?.content)) {
+        return extractTextFromContent(item.content);
+      }
+      if (Array.isArray(item?.output)) {
+        return extractTextFromOutput(item.output);
+      }
+      return '';
+    })
+    .join('')
+);
+
+const extractEventText = (payload, currentEvent = '') => {
+  const eventType = String(payload?.type || currentEvent || '').trim();
+
+  if (eventType === 'response.output_text.delta' && typeof payload?.delta === 'string') {
+    return {
+      text: payload.delta,
+      eventType,
+      isFinal: false,
+    };
+  }
+
+  if ((eventType === 'response.output_text.done' || eventType === 'response.text.done') && typeof payload?.text === 'string') {
+    return {
+      text: payload.text,
+      eventType,
+      isFinal: true,
+    };
+  }
+
+  if (eventType === 'response.completed') {
+    const completedText = extractTextFromOutput(payload?.response?.output || payload?.output);
+    return {
+      text: completedText,
+      eventType,
+      isFinal: true,
+    };
+  }
+
+  const deltaText = extractDeltaText(payload);
+  if (deltaText) {
+    return {
+      text: deltaText,
+      eventType,
+      isFinal: false,
+    };
+  }
+
+  if (typeof payload?.delta === 'string') {
+    return {
+      text: payload.delta,
+      eventType,
+      isFinal: false,
+    };
+  }
+
+  if (typeof payload?.text === 'string') {
+    return {
+      text: payload.text,
+      eventType,
+      isFinal: true,
+    };
+  }
+
+  return {
+    text: '',
+    eventType,
+    isFinal: false,
+  };
+};
+
+const emitTextDelta = (res, emittedTextRef, text, isFinal = false) => {
+  const nextText = String(text || '');
+  if (!nextText) return;
+
+  let delta = nextText;
+  if (isFinal && emittedTextRef.value && nextText.startsWith(emittedTextRef.value)) {
+    delta = nextText.slice(emittedTextRef.value.length);
+  }
+
+  if (!delta) return;
+  emittedTextRef.value += delta;
+  writeEvent(res, { type: 'delta', data: delta });
+};
+
+const readStreamLines = async (response, handleLine) => {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let reading = true;
+
+  while (reading) {
+    const { done, value } = await reader.read();
+    if (done) {
+      reading = false;
+      continue;
+    }
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    lines.forEach((line) => {
+      handleLine(line);
+    });
+  }
+
+  const tail = buffer.trim();
+  if (tail) {
+    handleLine(tail);
+  }
+};
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
@@ -94,43 +236,28 @@ export default async function handler(req, res) {
         return res.end();
       }
 
-      const reader = upstreamResponse.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
+      const emittedTextRef = { value: '' };
       let currentEvent = '';
-      let reading = true;
 
-      while (reading) {
-        const { done, value } = await reader.read();
-        if (done) {
-          reading = false;
-          continue;
+      await readStreamLines(upstreamResponse, (line) => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+        if (trimmed.startsWith('event:')) {
+          currentEvent = trimmed.slice(6).trim();
+          return;
         }
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+        const payloadText = trimmed.startsWith('data:') ? trimmed.slice(5).trim() : trimmed;
+        if (!payloadText || payloadText === '[DONE]') return;
 
-        lines.forEach((line) => {
-          const trimmed = line.trim();
-          if (!trimmed) return;
-          if (trimmed.startsWith('event:')) {
-            currentEvent = trimmed.slice(6).trim();
-            return;
-          }
-          if (!trimmed.startsWith('data:')) return;
-          const payloadText = trimmed.slice(5).trim();
-          if (!payloadText || payloadText === '[DONE]') return;
-          try {
-            const payload = JSON.parse(payloadText);
-            if (currentEvent === 'response.output_text.delta' && payload?.delta) {
-              writeEvent(res, { type: 'delta', data: payload.delta });
-            }
-          } catch {
-            // 忽略单条解析失败
-          }
-        });
-      }
+        try {
+          const payload = JSON.parse(payloadText);
+          const { text, isFinal } = extractEventText(payload, currentEvent);
+          emitTextDelta(res, emittedTextRef, text, isFinal);
+        } catch {
+          // 忽略单条解析失败
+        }
+      });
     } else {
       const upstreamResponse = await fetch(buildChatUrl(config.baseUrl), {
         method: 'POST',
@@ -158,37 +285,23 @@ export default async function handler(req, res) {
         return res.end();
       }
 
-      const reader = upstreamResponse.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let reading = true;
+      const emittedTextRef = { value: '' };
 
-      while (reading) {
-        const { done, value } = await reader.read();
-        if (done) {
-          reading = false;
-          continue;
+      await readStreamLines(upstreamResponse, (line) => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('event:')) return;
+
+        const payloadText = trimmed.startsWith('data:') ? trimmed.slice(5).trim() : trimmed;
+        if (!payloadText || payloadText === '[DONE]') return;
+
+        try {
+          const payload = JSON.parse(payloadText);
+          const { text, isFinal } = extractEventText(payload);
+          emitTextDelta(res, emittedTextRef, text, isFinal);
+        } catch {
+          // 忽略单条解析失败
         }
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        lines.forEach((line) => {
-          const trimmed = line.trim();
-          if (!trimmed.startsWith('data:')) return;
-          const payloadText = trimmed.slice(5).trim();
-          if (!payloadText || payloadText === '[DONE]') return;
-          try {
-            const payload = JSON.parse(payloadText);
-            const delta = extractDeltaText(payload);
-            if (delta) {
-              writeEvent(res, { type: 'delta', data: delta });
-            }
-          } catch {
-            // 忽略单条解析失败
-          }
-        });
-      }
+      });
     }
 
     writeEvent(res, { type: 'done' });
