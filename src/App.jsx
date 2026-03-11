@@ -426,6 +426,7 @@ export default function App() {
           onDeleteConversation={deleteConversation}
           onSendMessage={sendMessage}
           onSaveConfig={saveAiConfig}
+          onShowToast={showToast}
           onOpenSettings={() => setIsAiSettingsOpen(true)}
           streamingConversationId={streamingConversationId}
         />

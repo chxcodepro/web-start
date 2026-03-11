@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm';
 import {
   ArrowDown,
   Bot,
+  Check,
   Copy,
   Loader2,
   MessageSquarePlus,
@@ -172,6 +173,7 @@ export default function AiAssistantPage({
   onDeleteConversation,
   onSendMessage,
   onSaveConfig,
+  onShowToast,
   onOpenSettings,
   streamingConversationId,
 }) {
@@ -306,6 +308,7 @@ export default function AiAssistantPage({
         document.body.removeChild(input);
       }
       setCopiedMessageId(message.id);
+      onShowToast?.('复制成功', 'success');
       window.clearTimeout(copiedTimerRef.current);
       copiedTimerRef.current = window.setTimeout(() => {
         setCopiedMessageId('');
@@ -491,10 +494,12 @@ export default function AiAssistantPage({
                           <button
                             type="button"
                             onClick={() => handleCopyMessage(message)}
-                            className="inline-flex items-center transition hover:text-white"
+                            className={`inline-flex items-center transition hover:text-white ${
+                              copiedMessageId === message.id ? 'text-emerald-300' : ''
+                            }`}
                             title={copiedMessageId === message.id ? '已复制' : '复制'}
                           >
-                            <Copy size={12} />
+                            {copiedMessageId === message.id ? <Check size={12} /> : <Copy size={12} />}
                           </button>
                           {message.role === 'user' && (
                             <button

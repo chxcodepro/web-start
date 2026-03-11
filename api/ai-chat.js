@@ -4,7 +4,6 @@ import {
   buildResponsesUrl,
   buildSearchContext,
   extractDeltaText,
-  normalizeBaseUrl,
   sanitizeMessages,
   searchWithExa,
 } from './_ai.js';
@@ -233,24 +232,6 @@ export default async function handler(req, res) {
     }
 
     if (searchMode === 'openai') {
-      const normalizedBaseUrl = normalizeBaseUrl(config.baseUrl);
-      try {
-        const hostname = new URL(normalizedBaseUrl).hostname.toLowerCase();
-        if (hostname !== 'api.openai.com') {
-          writeSearchStatus(res, {
-            level: 'warning',
-            mode: searchMode,
-            message: `当前接口地址是 ${hostname}，不是官方 OpenAI。即使请求成功，也可能只是普通回答，未必真的用了 web_search。`,
-          });
-        }
-      } catch {
-        writeSearchStatus(res, {
-          level: 'warning',
-          mode: searchMode,
-          message: '当前接口地址格式异常，无法确认 OpenAI 原生搜索是否可用。',
-        });
-      }
-
       const upstreamResponse = await fetch(buildResponsesUrl(config.baseUrl), {
         method: 'POST',
         headers: {
