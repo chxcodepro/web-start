@@ -3,7 +3,6 @@ import {
   buildModelsUrl,
   buildResponsesUrl,
   normalizeBaseUrl,
-  searchWeb,
   searchWithExa,
 } from './_ai.js';
 
@@ -90,7 +89,7 @@ export default async function handler(req, res) {
     const apiKey = String(config.apiKey || '').trim();
     const model = String(config.model || '').trim();
     const enableWebSearch = config.enableWebSearch !== false;
-    const searchMode = String(config.searchMode || 'duckduckgo').trim();
+    const searchMode = String(config.searchMode || 'openai').trim() === 'exa' ? 'exa' : 'openai';
     const searchApiKey = String(config.searchApiKey || '').trim();
 
     if (!baseUrl) {
@@ -113,15 +112,9 @@ export default async function handler(req, res) {
           throw new Error('Exa 搜索没有返回结果');
         }
         searchMessage = 'Exa 搜索验证通过';
-      } else if (searchMode === 'openai') {
+      } else {
         await validateOpenAiSearch(baseUrl, apiKey, model);
         searchMessage = 'OpenAI 原生搜索验证通过';
-      } else {
-        const results = await searchWeb('OpenAI 最新模型');
-        if (!results.length) {
-          throw new Error('DuckDuckGo 搜索没有返回结果');
-        }
-        searchMessage = 'DuckDuckGo 搜索验证通过';
       }
     }
 

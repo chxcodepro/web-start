@@ -29,14 +29,15 @@ const formatTime = (value) => {
 };
 
 const searchModeLabel = {
-  duckduckgo: 'DuckDuckGo 搜索',
   exa: 'Exa 搜索',
   openai: 'OpenAI 原生搜索',
 };
 
+const normalizeSearchMode = (value) => (value === 'exa' ? 'exa' : 'openai');
+
 const pickSearchConfig = (config = {}) => ({
   enableWebSearch: config.enableWebSearch !== false,
-  searchMode: String(config.searchMode || 'duckduckgo').trim(),
+  searchMode: normalizeSearchMode(String(config.searchMode || 'openai').trim()),
   searchApiKey: String(config.searchApiKey || ''),
 });
 
@@ -416,7 +417,7 @@ export default function AiAssistantPage({
             <div className="border-b border-white/10 bg-white/[0.05] px-5 py-4">
               <h2 className="text-base font-semibold text-white/90">{activeConversation?.title || 'AI 助手'}</h2>
               <p className="mt-1 text-xs text-white/45">
-                当前模型：{aiConfig?.model || '未设置'} {aiConfig?.enableWebSearch ? `· ${searchModeLabel[aiConfig?.searchMode] || '联网搜索已开启'}` : '· 联网搜索已关闭'}
+                当前模型：{aiConfig?.model || '未设置'} {aiConfig?.enableWebSearch ? `· ${searchModeLabel[normalizeSearchMode(aiConfig?.searchMode)]}` : '· 联网搜索已关闭'}
               </p>
             </div>
 
@@ -593,7 +594,6 @@ export default function AiAssistantPage({
                           <>
                             <div className="mt-4 flex flex-wrap gap-2">
                               {[
-                                { key: 'duckduckgo', label: 'DuckDuckGo' },
                                 { key: 'exa', label: 'Exa' },
                                 { key: 'openai', label: 'OpenAI 原生' },
                               ].map((item) => (

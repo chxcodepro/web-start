@@ -6,7 +6,6 @@ import {
   extractDeltaText,
   normalizeBaseUrl,
   sanitizeMessages,
-  searchWeb,
   searchWithExa,
 } from './_ai.js';
 
@@ -178,13 +177,11 @@ export default async function handler(req, res) {
     const model = String(config.model || '').trim();
     const systemPrompt = String(config.systemPrompt || '').trim();
     const enableWebSearch = config.enableWebSearch !== false;
-    const searchMode = String(config.searchMode || 'duckduckgo').trim();
+    const searchMode = String(config.searchMode || 'openai').trim() === 'exa' ? 'exa' : 'openai';
     const searchApiKey = String(config.searchApiKey || '').trim();
     const searchModeLabel = searchMode === 'exa'
       ? 'Exa'
-      : searchMode === 'openai'
-        ? 'OpenAI 原生搜索'
-        : 'DuckDuckGo';
+      : 'OpenAI 原生搜索';
 
     if (!apiKey || !model) {
       return res.status(400).json({ error: '请先填写 AI 助手的 Key 和模型' });
@@ -194,13 +191,9 @@ export default async function handler(req, res) {
     let searchResults = [];
     let searchStatus = null;
 
-    if (enableWebSearch && latestUserMessage && searchMode !== 'openai') {
+    if (enableWebSearch && latestUserMessage && searchMode === 'exa') {
       try {
-        if (searchMode === 'exa') {
-          searchResults = await searchWithExa(latestUserMessage, searchApiKey || apiKey);
-        } else {
-          searchResults = await searchWeb(latestUserMessage);
-        }
+        searchResults = await searchWithExa(latestUserMessage, searchApiKey || apiKey);
         if (!searchResults.length) {
           searchStatus = {
             level: 'warning',
