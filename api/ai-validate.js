@@ -2,6 +2,7 @@ import { verifyRequestAuth } from './_auth.js';
 import {
   buildModelsUrl,
   buildResponsesUrl,
+  normalizeBaseUrl,
   searchWeb,
   searchWithExa,
 } from './_ai.js';
@@ -40,6 +41,7 @@ const validateOpenAiSearch = async (baseUrl, apiKey, model) => {
     body: JSON.stringify({
       model,
       input: '请使用 web search 搜索今天的一条科技新闻，只回复 ok。',
+      include: ['web_search_call.action.sources'],
       tools: [{ type: 'web_search' }],
       max_output_tokens: 16,
     }),
@@ -48,6 +50,24 @@ const validateOpenAiSearch = async (baseUrl, apiKey, model) => {
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
     throw new Error(payload?.error?.message || payload?.message || 'OpenAI 原生搜索不可用');
+  }
+
+  const outputItems = Array.isArray(payload?.output) ? payload.output : [];
+  const hasWebSearchCall = outputItems.some((item) => {
+    if (item?.type === 'web_search_call') return true;
+    if (Array.isArray(item?.action?.sources) && item.action.sources.length > 0) return true;
+    return false;
+  });
+
+  if (!hasWebSearchCall) {
+    const hostname = (() => {
+      try {
+        return new URL(normalizeBaseUrl(baseUrl)).hostname;
+      } catch {
+        return '当前地址';
+      }
+    })();
+    throw new Error(`${hostname} 返回成功，但没有检测到 web_search 工具调用。请确认 baseUrl 和模型真的支持 OpenAI 原生搜索`);
   }
 
   return true;

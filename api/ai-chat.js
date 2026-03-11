@@ -4,6 +4,7 @@ import {
   buildResponsesUrl,
   buildSearchContext,
   extractDeltaText,
+  normalizeBaseUrl,
   sanitizeMessages,
   searchWeb,
   searchWithExa,
@@ -11,6 +12,10 @@ import {
 
 const writeEvent = (res, payload) => {
   res.write(`${JSON.stringify(payload)}\n`);
+};
+
+const writeSearchStatus = (res, payload) => {
+  writeEvent(res, { type: 'search_status', data: payload });
 };
 
 const extractTextFromContent = (content) => {
@@ -175,6 +180,11 @@ export default async function handler(req, res) {
     const enableWebSearch = config.enableWebSearch !== false;
     const searchMode = String(config.searchMode || 'duckduckgo').trim();
     const searchApiKey = String(config.searchApiKey || '').trim();
+    const searchModeLabel = searchMode === 'exa'
+      ? 'Exa'
+      : searchMode === 'openai'
+        ? 'OpenAI 原生搜索'
+        : 'DuckDuckGo';
 
     if (!apiKey || !model) {
       return res.status(400).json({ error: '请先填写 AI 助手的 Key 和模型' });
@@ -182,6 +192,7 @@ export default async function handler(req, res) {
 
     const latestUserMessage = [...messages].reverse().find(item => item.role === 'user')?.content || '';
     let searchResults = [];
+    let searchStatus = null;
 
     if (enableWebSearch && latestUserMessage && searchMode !== 'openai') {
       try {
@@ -190,14 +201,30 @@ export default async function handler(req, res) {
         } else {
           searchResults = await searchWeb(latestUserMessage);
         }
+        if (!searchResults.length) {
+          searchStatus = {
+            level: 'warning',
+            mode: searchMode,
+            message: `${searchModeLabel} 没有返回结果，本次回答不会包含实时联网结果。`,
+          };
+        }
       } catch (error) {
         searchResults = [];
+        searchStatus = {
+          level: 'warning',
+          mode: searchMode,
+          message: `${searchModeLabel} 搜索失败：${error?.message || '未知错误'}。本次回答不会包含实时联网结果。`,
+        };
       }
     }
 
     const mergedMessages = [
       ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
       ...(searchResults.length ? [{ role: 'system', content: buildSearchContext(searchResults) }] : []),
+      ...(searchStatus ? [{
+        role: 'system',
+        content: '本次联网搜索没有成功拿到可用结果。不要声称已经联网查到了实时信息；如果继续回答，要明确说明这次没有拿到实时搜索结果。',
+      }] : []),
       ...messages,
     ];
 
@@ -208,8 +235,29 @@ export default async function handler(req, res) {
     if (searchResults.length) {
       writeEvent(res, { type: 'sources', data: searchResults });
     }
+    if (searchStatus) {
+      writeSearchStatus(res, searchStatus);
+    }
 
     if (searchMode === 'openai') {
+      const normalizedBaseUrl = normalizeBaseUrl(config.baseUrl);
+      try {
+        const hostname = new URL(normalizedBaseUrl).hostname.toLowerCase();
+        if (hostname !== 'api.openai.com') {
+          writeSearchStatus(res, {
+            level: 'warning',
+            mode: searchMode,
+            message: `当前接口地址是 ${hostname}，不是官方 OpenAI。即使请求成功，也可能只是普通回答，未必真的用了 web_search。`,
+          });
+        }
+      } catch {
+        writeSearchStatus(res, {
+          level: 'warning',
+          mode: searchMode,
+          message: '当前接口地址格式异常，无法确认 OpenAI 原生搜索是否可用。',
+        });
+      }
+
       const upstreamResponse = await fetch(buildResponsesUrl(config.baseUrl), {
         method: 'POST',
         headers: {
@@ -220,6 +268,7 @@ export default async function handler(req, res) {
           model,
           stream: true,
           input: mergedMessages.map(item => ({ role: item.role, content: item.content })),
+          include: ['web_search_call.action.sources'],
           tools: [{ type: 'web_search' }],
         }),
       });
@@ -258,6 +307,14 @@ export default async function handler(req, res) {
           // 忽略单条解析失败
         }
       });
+
+      if (!emittedTextRef.value.trim()) {
+        writeSearchStatus(res, {
+          level: 'warning',
+          mode: searchMode,
+          message: 'OpenAI 原生搜索请求成功了，但没有解析到正文输出。当前接口或模型可能不支持 web_search。',
+        });
+      }
     } else {
       const upstreamResponse = await fetch(buildChatUrl(config.baseUrl), {
         method: 'POST',

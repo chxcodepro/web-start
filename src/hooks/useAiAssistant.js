@@ -163,6 +163,33 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
 
   const aiLoaded = configLoaded && conversationsLoaded;
 
+  const validateAiConfig = useCallback(async (nextConfig) => {
+    const normalized = {
+      ...DEFAULT_AI_ASSISTANT_CONFIG,
+      ...nextConfig,
+    };
+
+    if (!normalized.enableWebSearch) {
+      return null;
+    }
+
+    if (!String(normalized.baseUrl || '').trim() || !String(normalized.apiKey || '').trim() || !String(normalized.model || '').trim()) {
+      return null;
+    }
+
+    const headers = await getApiAuthHeaders();
+    const response = await fetch('/api/ai-validate', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ config: normalized }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload?.error || '配置验证失败');
+    }
+    return payload;
+  }, [getApiAuthHeaders]);
+
   const saveAiConfig = useCallback(async (nextConfig) => {
     if (!user) {
       throw new Error('请先登录管理员账号');
@@ -171,10 +198,11 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
       ...DEFAULT_AI_ASSISTANT_CONFIG,
       ...nextConfig,
     };
+    const validateResult = await validateAiConfig(normalized);
     await setDoc(CONFIG_DOC, { config: normalized }, { merge: true });
     setAiConfig(normalized);
-    showToast('AI 助手配置已保存');
-  }, [user, showToast]);
+    showToast(validateResult?.searchMessage ? `AI 助手配置已保存，${validateResult.searchMessage}` : 'AI 助手配置已保存');
+  }, [user, showToast, validateAiConfig]);
 
   const createConversation = useCallback(async (seedText = '', options = {}) => {
     if (!user) {
@@ -289,6 +317,7 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
 
     let assistantContent = '';
     let assistantSources = [];
+    let assistantSearchStatus = null;
     let lastPersistAt = Date.now();
     let persistChain = Promise.resolve();
     let bufferedDelta = '';
@@ -300,6 +329,7 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
             ...item,
             content: assistantContent,
             sources: assistantSources,
+            searchStatus: assistantSearchStatus,
             ...extra,
           }
         : item
@@ -374,6 +404,10 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
           const event = JSON.parse(trimmed);
           if (event.type === 'sources' && Array.isArray(event.data)) {
             assistantSources = event.data;
+            applyLocalConversation(buildMessagesSnapshot({ streaming: true }));
+          }
+          if (event.type === 'search_status' && event.data) {
+            assistantSearchStatus = event.data;
             applyLocalConversation(buildMessagesSnapshot({ streaming: true }));
           }
           if (event.type === 'delta' && event.data) {

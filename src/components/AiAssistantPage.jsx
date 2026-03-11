@@ -527,6 +527,18 @@ export default function AiAssistantPage({
                             </div>
                           </div>
                         )}
+                        {message.searchStatus?.message && (
+                          <div className={`mt-4 rounded-[20px] border p-3 text-xs leading-6 ${
+                            message.searchStatus.level === 'warning'
+                              ? 'border-amber-300/20 bg-amber-500/10 text-amber-100'
+                              : 'border-cyan-300/20 bg-cyan-500/10 text-cyan-100'
+                          }`}>
+                            <p className="font-medium">
+                              {message.searchStatus.level === 'warning' ? '联网搜索提示' : '联网搜索状态'}
+                            </p>
+                            <p className="mt-1 text-white/80">{message.searchStatus.message}</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
