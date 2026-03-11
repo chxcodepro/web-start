@@ -270,8 +270,8 @@ export default function AiAssistantPage({
         ...searchConfig,
       });
       setShowSearchPanel(false);
-    } catch {
-      // 提示由上层处理
+    } catch (error) {
+      onShowToast?.(error?.message || '保存失败', 'error');
     } finally {
       setSavingSearchConfig(false);
     }

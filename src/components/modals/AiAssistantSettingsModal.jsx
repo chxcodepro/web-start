@@ -15,6 +15,7 @@ export default function AiAssistantSettingsModal({
   const [availableModels, setAvailableModels] = useState([]);
   const [fetchError, setFetchError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   useEffect(() => {
     if (initialConfig) {
@@ -55,9 +56,12 @@ export default function AiAssistantSettingsModal({
   const handleSave = async () => {
     if (saving) return;
     setSaving(true);
+    setSaveError('');
     try {
       await onSave?.(formData);
       onClose();
+    } catch (error) {
+      setSaveError(error?.message || '保存失败');
     } finally {
       setSaving(false);
     }
@@ -165,6 +169,7 @@ export default function AiAssistantSettingsModal({
               className="w-full resize-none rounded-[24px] border border-white/10 bg-white/[0.08] px-4 py-3 text-sm leading-6 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl focus:border-cyan-400/70 focus:bg-white/[0.12] focus:outline-none"
             />
           </div>
+          {saveError && <p className="px-1 text-xs text-red-300">{saveError}</p>}
         </div>
 
         <div className="border-t border-white/10 bg-white/[0.04] px-4 py-3.5">

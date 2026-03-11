@@ -163,33 +163,6 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
 
   const aiLoaded = configLoaded && conversationsLoaded;
 
-  const validateAiConfig = useCallback(async (nextConfig) => {
-    const normalized = {
-      ...DEFAULT_AI_ASSISTANT_CONFIG,
-      ...nextConfig,
-    };
-
-    if (!normalized.enableWebSearch) {
-      return null;
-    }
-
-    if (!String(normalized.baseUrl || '').trim() || !String(normalized.apiKey || '').trim() || !String(normalized.model || '').trim()) {
-      return null;
-    }
-
-    const headers = await getApiAuthHeaders();
-    const response = await fetch('/api/ai-validate', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ config: normalized }),
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(payload?.error || '配置验证失败');
-    }
-    return payload;
-  }, [getApiAuthHeaders]);
-
   const saveAiConfig = useCallback(async (nextConfig) => {
     if (!user) {
       throw new Error('请先登录管理员账号');
@@ -198,11 +171,10 @@ export function useAiAssistant({ user, getApiAuthHeaders, showToast }) {
       ...DEFAULT_AI_ASSISTANT_CONFIG,
       ...nextConfig,
     };
-    const validateResult = await validateAiConfig(normalized);
     await setDoc(CONFIG_DOC, { config: normalized }, { merge: true });
     setAiConfig(normalized);
-    showToast(validateResult?.searchMessage ? `AI 助手配置已保存，${validateResult.searchMessage}` : 'AI 助手配置已保存');
-  }, [user, showToast, validateAiConfig]);
+    showToast('AI 助手配置已保存');
+  }, [user, showToast]);
 
   const createConversation = useCallback(async (seedText = '', options = {}) => {
     if (!user) {
