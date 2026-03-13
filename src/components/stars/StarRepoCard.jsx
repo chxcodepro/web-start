@@ -194,8 +194,8 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo, searchQu
           onClick={() => setShowGroupDropdown(!showGroupDropdown)}
           className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-lg transition ${
             repo.group
-              ? 'border border-cyan-400/30 bg-cyan-500/22 text-cyan-200 shadow-[0_8px_20px_rgba(34,211,238,0.12)] hover:bg-cyan-500/30'
-              : 'border border-dashed border-white/20 bg-white/[0.14] text-white/70 hover:bg-white/[0.2] hover:text-white'
+              ? 'border border-[rgba(103,232,249,0.34)] bg-[rgba(8,145,178,0.24)] text-cyan-100 shadow-[0_8px_20px_rgba(34,211,238,0.12)] hover:bg-[rgba(8,145,178,0.32)]'
+              : 'border border-dashed border-white/20 bg-[rgba(15,23,42,0.28)] text-white/80 backdrop-blur-xl hover:bg-[rgba(15,23,42,0.38)] hover:text-white'
           }`}
         >
           <Tag size={10} />
@@ -205,7 +205,7 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo, searchQu
 
         {/* 下拉选择框（向下弹出） */}
         {showGroupDropdown && (
-          <div className="absolute left-0 top-full z-[100] mt-1 min-w-[160px] rounded-xl border border-white/18 bg-slate-900/52 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_54px_rgba(5,10,25,0.3)] backdrop-blur-3xl animate-fade-in">
+          <div className="absolute left-0 top-full z-[100] mt-1 min-w-[160px] rounded-xl border border-[rgba(255,255,255,0.18)] bg-[rgba(15,23,42,0.58)] py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_24px_60px_rgba(2,6,23,0.38)] backdrop-blur-[30px] backdrop-saturate-150 animate-fade-in">
             {/* 新建分组输入 */}
             <div className="px-2 py-1.5 border-b border-white/10">
               <div className="flex items-center gap-1">
@@ -215,7 +215,7 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo, searchQu
                   onChange={(e) => setNewGroupName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleCreateGroup()}
                   placeholder="新建分组..."
-                  className="flex-1 rounded border-none bg-white/[0.1] px-2 py-1 text-xs text-white placeholder-white/40 backdrop-blur-xl focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                  className="flex-1 rounded border-none bg-[rgba(255,255,255,0.10)] px-2 py-1 text-xs text-white placeholder-white/40 backdrop-blur-[16px] focus:outline-none focus:ring-1 focus:ring-cyan-500"
                   autoFocus
                 />
                 {newGroupName.trim() && (
@@ -235,7 +235,7 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo, searchQu
               {repo.group && (
                 <button
                   onClick={() => handleSelectGroup('')}
-                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-white/78 transition hover:bg-white/[0.12] hover:backdrop-blur-xl hover:text-white"
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-white/80 transition hover:bg-[rgba(255,255,255,0.10)] hover:backdrop-blur-[18px] hover:text-white"
                 >
                   取消分组
                 </button>
@@ -246,8 +246,8 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo, searchQu
                   onClick={() => handleSelectGroup(g)}
                   className={`flex w-full items-center justify-between px-3 py-1.5 text-left text-xs transition ${
                     repo.group === g
-                      ? 'bg-cyan-500/22 text-cyan-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-xl'
-                      : 'text-white/85 hover:bg-white/[0.12] hover:backdrop-blur-xl hover:text-white'
+                      ? 'bg-[rgba(6,182,212,0.20)] text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-[18px]'
+                      : 'text-white/85 hover:bg-[rgba(255,255,255,0.10)] hover:backdrop-blur-[18px] hover:text-white'
                   }`}
                 >
                   {g}
