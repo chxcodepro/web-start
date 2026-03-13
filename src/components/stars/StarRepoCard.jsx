@@ -205,7 +205,7 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo, searchQu
 
         {/* 下拉选择框（向下弹出） */}
         {showGroupDropdown && (
-          <div className="absolute left-0 top-full z-[100] mt-1 min-w-[160px] rounded-xl border border-white/15 bg-slate-950/78 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_54px_rgba(5,10,25,0.42)] backdrop-blur-2xl animate-fade-in">
+          <div className="absolute left-0 top-full z-[100] mt-1 min-w-[160px] rounded-xl border border-white/18 bg-slate-900/52 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_54px_rgba(5,10,25,0.3)] backdrop-blur-3xl animate-fade-in">
             {/* 新建分组输入 */}
             <div className="px-2 py-1.5 border-b border-white/10">
               <div className="flex items-center gap-1">
@@ -215,7 +215,7 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo, searchQu
                   onChange={(e) => setNewGroupName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleCreateGroup()}
                   placeholder="新建分组..."
-                  className="flex-1 rounded border-none bg-white/[0.12] px-2 py-1 text-xs text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                  className="flex-1 rounded border-none bg-white/[0.1] px-2 py-1 text-xs text-white placeholder-white/40 backdrop-blur-xl focus:outline-none focus:ring-1 focus:ring-cyan-500"
                   autoFocus
                 />
                 {newGroupName.trim() && (
@@ -235,7 +235,7 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo, searchQu
               {repo.group && (
                 <button
                   onClick={() => handleSelectGroup('')}
-                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-white/70 transition hover:bg-white/[0.14] hover:text-white"
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-white/78 transition hover:bg-white/[0.12] hover:backdrop-blur-xl hover:text-white"
                 >
                   取消分组
                 </button>
@@ -246,8 +246,8 @@ export default function StarRepoCard({ repo, groups = [], onUpdateRepo, searchQu
                   onClick={() => handleSelectGroup(g)}
                   className={`flex w-full items-center justify-between px-3 py-1.5 text-left text-xs transition ${
                     repo.group === g
-                      ? 'bg-cyan-500/24 text-cyan-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
-                      : 'text-white/80 hover:bg-white/[0.14] hover:text-white'
+                      ? 'bg-cyan-500/22 text-cyan-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-xl'
+                      : 'text-white/85 hover:bg-white/[0.12] hover:backdrop-blur-xl hover:text-white'
                   }`}
                 >
                   {g}
