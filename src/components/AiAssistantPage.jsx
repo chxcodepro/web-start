@@ -183,6 +183,7 @@ export default function AiAssistantPage({
   const [showSearchPanel, setShowSearchPanel] = useState(false);
   const [copiedMessageId, setCopiedMessageId] = useState('');
   const [replayingMessageId, setReplayingMessageId] = useState('');
+  const [viewportHeight, setViewportHeight] = useState(() => window.visualViewport?.height || window.innerHeight || 0);
   const searchPanelRef = useRef(null);
   const scrollableRef = useRef(null);
   const textareaRef = useRef(null);
@@ -226,6 +227,23 @@ export default function AiAssistantPage({
     };
   }, [activeConversationId, activeConversation?.messages, streamingConversationId, visible]);
 
+  useEffect(() => {
+    if (!visible) return undefined;
+
+    const updateViewportHeight = () => {
+      setViewportHeight(window.visualViewport?.height || window.innerHeight || 0);
+    };
+
+    updateViewportHeight();
+    window.addEventListener('resize', updateViewportHeight);
+    window.visualViewport?.addEventListener('resize', updateViewportHeight);
+
+    return () => {
+      window.removeEventListener('resize', updateViewportHeight);
+      window.visualViewport?.removeEventListener('resize', updateViewportHeight);
+    };
+  }, [visible]);
+
   const emptyHint = useMemo(() => {
     if (!isLoggedIn) return '登录后才能使用 AI 助手。';
     return '';
@@ -233,6 +251,7 @@ export default function AiAssistantPage({
 
   const isStreaming = Boolean(streamingConversationId);
   const searchConfigDirty = JSON.stringify(searchConfig) !== JSON.stringify(pickSearchConfig(aiConfig));
+  const chatPanelHeight = viewportHeight ? Math.max(viewportHeight - 64, 0) : 0;
 
   const submitDraft = async () => {
     if (!isLoggedIn) {
@@ -319,9 +338,12 @@ export default function AiAssistantPage({
   };
 
   return (
-    <div className={`fixed inset-0 z-[70] transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+    <div
+      className={`fixed inset-0 z-[70] overflow-hidden transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
       visible ? 'translate-y-0' : '-translate-y-full pointer-events-none'
-    }`}>
+      }`}
+      style={{ overscrollBehavior: 'none' }}
+    >
       <div className="absolute inset-0 bg-black/35 backdrop-blur-sm" />
       <div className="relative z-10 flex h-full flex-col text-white">
         <div className="border-b border-white/10 bg-white/[0.1] backdrop-blur-2xl">
@@ -355,7 +377,10 @@ export default function AiAssistantPage({
           </div>
         </div>
 
-        <div className="mx-auto flex h-[calc(100vh-4rem)] w-full max-w-[1700px] gap-4 px-4 py-4 md:px-8">
+        <div
+          className="mx-auto flex h-[calc(100vh-4rem)] w-full max-w-[1700px] gap-4 px-4 py-4 md:px-8"
+          style={{ height: chatPanelHeight ? `${chatPanelHeight}px` : undefined }}
+        >
           <aside className="hidden w-[320px] shrink-0 overflow-hidden rounded-[28px] border border-white/12 bg-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_54px_rgba(4,10,25,0.22)] backdrop-blur-2xl lg:flex lg:flex-col">
             <div className="border-b border-white/10 px-4 py-4">
               <div>
@@ -375,7 +400,7 @@ export default function AiAssistantPage({
                 </button>
               </div>
             </div>
-            <div className="custom-scrollbar flex-1 space-y-2 overflow-y-auto p-3">
+            <div className="custom-scrollbar flex-1 space-y-2 overflow-y-auto overscroll-contain p-3">
               {conversations.map((conversation) => {
                 const preview = [...(conversation.messages || [])]
                   .reverse()
@@ -438,7 +463,7 @@ export default function AiAssistantPage({
                   新建话题
                 </button>
               </div>
-              <div className="custom-scrollbar flex gap-2 overflow-x-auto">
+              <div className="custom-scrollbar flex gap-2 overflow-x-auto overscroll-contain">
                 {conversations.map((conversation) => (
                   <button
                     key={conversation.id}
@@ -456,7 +481,7 @@ export default function AiAssistantPage({
               </div>
             </div>
 
-            <div ref={scrollableRef} data-ai-scrollable className="custom-scrollbar flex-1 overflow-y-auto px-4 py-5 md:px-6">
+            <div ref={scrollableRef} data-ai-scrollable className="custom-scrollbar flex-1 overflow-y-auto overscroll-contain px-4 py-5 md:px-6">
               {!activeConversation?.messages?.length ? (
                 <div className="flex h-full min-h-[360px] items-center justify-center">
                   <div className="max-w-xl rounded-[30px] border border-white/10 bg-white/[0.06] px-6 py-8 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">

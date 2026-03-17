@@ -264,7 +264,8 @@ export default function App() {
 
   const closeAiPage = useCallback(() => {
     setShowAiPage(false);
-  }, []);
+    setIsAiSettingsOpen(false);
+  }, [setIsAiSettingsOpen]);
 
   const handleFetchAiModels = useCallback(async ({ baseUrl, apiKey }) => {
     const headers = await getApiAuthHeaders();
@@ -287,11 +288,23 @@ export default function App() {
   }, [hasLoginSession, showAiPage]);
 
   useEffect(() => {
+    document.documentElement.style.overflow = showAiPage ? 'hidden' : '';
+    document.documentElement.style.overscrollBehavior = showAiPage ? 'none' : '';
     document.body.style.overflow = showAiPage ? 'hidden' : '';
+    document.body.style.overscrollBehavior = showAiPage ? 'none' : '';
     return () => {
+      document.documentElement.style.overflow = '';
+      document.documentElement.style.overscrollBehavior = '';
       document.body.style.overflow = '';
+      document.body.style.overscrollBehavior = '';
     };
   }, [showAiPage]);
+
+  useEffect(() => {
+    if (!showAiPage) {
+      setIsAiSettingsOpen(false);
+    }
+  }, [showAiPage, setIsAiSettingsOpen]);
 
   useEffect(() => {
     if (showStarsPage) return undefined;
@@ -333,7 +346,7 @@ export default function App() {
       if (scrollable && scrollable.scrollHeight > scrollable.clientHeight) return;
       if (event.deltaY > 45) {
         aiScrollLockRef.current = true;
-        setShowAiPage(false);
+        closeAiPage();
         window.setTimeout(() => {
           aiScrollLockRef.current = false;
         }, 900);
@@ -342,7 +355,7 @@ export default function App() {
 
     window.addEventListener('wheel', handleWheelCloseAi, { passive: true });
     return () => window.removeEventListener('wheel', handleWheelCloseAi);
-  }, [showAiPage]);
+  }, [closeAiPage, showAiPage]);
 
   // 加载状态
   if (isLoading) {
@@ -412,24 +425,26 @@ export default function App() {
 
       {/* 主内容 */}
       <Suspense fallback={null}>
-        <AiAssistantPage
-          visible={showAiPage}
-          onClose={closeAiPage}
-          isLoggedIn={hasLoginSession}
-          onRequireLogin={() => setIsLoginModalOpen(true)}
-          aiConfig={aiConfig}
-          conversations={conversations}
-          activeConversation={activeConversation}
-          activeConversationId={activeConversationId}
-          setActiveConversationId={setActiveConversationId}
-          onCreateConversation={createConversation}
-          onDeleteConversation={deleteConversation}
-          onSendMessage={sendMessage}
-          onSaveConfig={saveAiConfig}
-          onShowToast={showToast}
-          onOpenSettings={() => setIsAiSettingsOpen(true)}
-          streamingConversationId={streamingConversationId}
-        />
+        {showAiPage && (
+          <AiAssistantPage
+            visible={showAiPage}
+            onClose={closeAiPage}
+            isLoggedIn={hasLoginSession}
+            onRequireLogin={() => setIsLoginModalOpen(true)}
+            aiConfig={aiConfig}
+            conversations={conversations}
+            activeConversation={activeConversation}
+            activeConversationId={activeConversationId}
+            setActiveConversationId={setActiveConversationId}
+            onCreateConversation={createConversation}
+            onDeleteConversation={deleteConversation}
+            onSendMessage={sendMessage}
+            onSaveConfig={saveAiConfig}
+            onShowToast={showToast}
+            onOpenSettings={() => setIsAiSettingsOpen(true)}
+            streamingConversationId={streamingConversationId}
+          />
+        )}
       </Suspense>
       <MainPage
         isAdmin={isAdminVisible}
