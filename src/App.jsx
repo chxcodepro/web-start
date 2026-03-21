@@ -306,30 +306,6 @@ export default function App() {
     }
   }, [showAiPage, setIsAiSettingsOpen]);
 
-  useEffect(() => {
-    if (showStarsPage) return undefined;
-
-    const handleWheelOpenAi = (event) => {
-      if (showAiPage || aiScrollLockRef.current) return;
-      const target = event.target;
-      const tagName = target?.tagName?.toLowerCase?.();
-      if (['input', 'textarea', 'select'].includes(tagName) || target?.isContentEditable) {
-        return;
-      }
-      if (window.scrollY > 24) return;
-      if (event.deltaY < -45) {
-        aiScrollLockRef.current = true;
-        openAiPage();
-        window.setTimeout(() => {
-          aiScrollLockRef.current = false;
-        }, 900);
-      }
-    };
-
-    window.addEventListener('wheel', handleWheelOpenAi, { passive: true });
-    return () => window.removeEventListener('wheel', handleWheelOpenAi);
-  }, [openAiPage, showAiPage, showStarsPage]);
-
   // 在 AI 页面向下滚动返回导航页
   useEffect(() => {
     if (!showAiPage) return undefined;
