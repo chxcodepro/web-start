@@ -349,12 +349,6 @@ export default function AiAssistantPage({
         <div className="border-b border-white/10 bg-white/[0.1] backdrop-blur-2xl">
           <div className="mx-auto flex h-16 w-full max-w-[1700px] items-center justify-between px-4 md:px-8">
             <div className="flex items-center gap-3">
-              <button
-                onClick={onClose}
-                className="rounded-xl border border-white/10 bg-white/[0.08] p-2 text-white/75 transition hover:bg-white/[0.14] hover:text-white"
-              >
-                <ArrowDown size={18} />
-              </button>
               <div>
                 <h1 className="flex items-center gap-2 text-lg font-bold">
                   <Sparkles size={18} className="text-cyan-300" />
@@ -363,6 +357,12 @@ export default function AiAssistantPage({
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={onClose}
+                className="rounded-xl border border-white/10 bg-white/[0.08] p-2 text-white/75 transition hover:bg-white/[0.14] hover:text-white"
+              >
+                <ArrowDown size={18} />
+              </button>
               <button
                 onClick={() => {
                   if (!isLoggedIn) return onRequireLogin?.();
