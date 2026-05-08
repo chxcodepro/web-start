@@ -14,7 +14,6 @@ import {
   Upload,
   Star,
   Home,
-  Bot,
   Globe,
   Clock,
 } from 'lucide-react';
@@ -88,8 +87,6 @@ export default function MainPage({
   setIsWebDavModalOpen,
   setShowStarsPage,
   showStarsPage,
-  showAiPage,
-  onOpenAiPage,
   importInputRef,
   handleShowAdmin,
   handleRequestAdminExit,
@@ -98,7 +95,6 @@ export default function MainPage({
     <>
       {/* 左上角 Tab 导航 */}
       <PageTabs showStarsPage={showStarsPage} setShowStarsPage={setShowStarsPage} />
-      <AiRope visible={!showStarsPage && !showAiPage} onClick={onOpenAiPage} />
 
       {/* 管理员模式提示 */}
       {isAdmin && (
@@ -209,20 +205,6 @@ export default function MainPage({
         />
       </div>
     </>
-  );
-}
-
-function AiRope({ visible, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`fixed right-5 top-5 z-50 hidden items-center md:flex ${visible ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'} transition-opacity duration-300`}
-      title="进入 AI 助手"
-    >
-      <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/[0.12] text-cyan-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_24px_rgba(4,10,25,0.28)] backdrop-blur-2xl transition hover:bg-white/[0.18] hover:text-white hover:scale-110">
-        <Bot size={16} />
-      </div>
-    </button>
   );
 }
 

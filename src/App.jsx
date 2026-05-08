@@ -1,12 +1,11 @@
 // 主应用组件
-import { lazy, Suspense, useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { lazy, Suspense, useState, useMemo, useCallback, useEffect } from 'react';
 import { Check, AlertTriangle } from 'lucide-react';
 
 // 组件
 import LoadingPage from './components/LoadingPage';
 import MainPage from './components/MainPage';
 import VersionTag from './components/VersionTag';
-import AiAssistantSettingsModal from './components/modals/AiAssistantSettingsModal';
 
 // Hooks
 import { useFirebase } from './hooks/useFirebase';
@@ -15,7 +14,6 @@ import { useSearch } from './hooks/useSearch';
 import { useWebDav } from './hooks/useWebDav';
 import { useSiteManager } from './hooks/useSiteManager';
 import { useBookmarkImport } from './hooks/useBookmarkImport';
-import { useAiAssistant } from './hooks/useAiAssistant';
 
 // 工具函数和常量
 import { mergePagesToSingle } from './utils/helpers';
@@ -30,14 +28,12 @@ const GroupModal = lazy(() => import('./components/modals/GroupModal'));
 const ImportModal = lazy(() => import('./components/modals/ImportModal'));
 const WebDavModal = lazy(() => import('./components/modals/WebDavModal'));
 const GitHubStarsSettingsModal = lazy(() => import('./components/modals/GitHubStarsSettingsModal'));
-const AiAssistantPage = lazy(() => import('./components/AiAssistantPage'));
 const GitHubStarsPage = lazy(() => import('./components/stars/GitHubStarsPage'));
 
 export default function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isBgModalOpen, setIsBgModalOpen] = useState(false);
   const [isAdminExitDialogOpen, setIsAdminExitDialogOpen] = useState(false);
-  const [showAiPage, setShowAiPage] = useState(false);
   const [adminHidden, setAdminHidden] = useState(() => {
     try {
       return localStorage.getItem('my-nav-admin-hidden') === 'true';
@@ -46,7 +42,6 @@ export default function App() {
     }
   });
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
-  const aiScrollLockRef = useRef(false);
 
   // Toast 提示函数（使用 useCallback 保持引用稳定，避免触发下游 Hook 重复执行）
   const showToast = useCallback((message, type = 'success') => {
@@ -104,7 +99,6 @@ export default function App() {
   const handleConfirmLogout = useCallback(async () => {
     setIsAdminExitDialogOpen(false);
     setAdminHidden(false);
-    setShowAiPage(false);
     await handleLogout();
   }, [handleLogout]);
 
@@ -238,74 +232,6 @@ export default function App() {
     confirmImportBookmarks,
   } = bookmark;
 
-  const aiAssistant = useAiAssistant({ user, getApiAuthHeaders, showToast });
-  const {
-    aiConfig,
-    conversations,
-    activeConversation,
-    activeConversationId,
-    setActiveConversationId,
-    isAiSettingsOpen,
-    setIsAiSettingsOpen,
-    streamingConversationId,
-    saveAiConfig,
-    createConversation,
-    deleteConversation,
-    sendMessage,
-  } = aiAssistant;
-
-  const openAiPage = useCallback(() => {
-    if (!hasLoginSession) {
-      setIsLoginModalOpen(true);
-      return;
-    }
-    setShowAiPage(true);
-  }, [hasLoginSession]);
-
-  const closeAiPage = useCallback(() => {
-    setShowAiPage(false);
-    setIsAiSettingsOpen(false);
-  }, [setIsAiSettingsOpen]);
-
-  const handleFetchAiModels = useCallback(async ({ baseUrl, apiKey }) => {
-    const headers = await getApiAuthHeaders();
-    const response = await fetch('/api/ai-models', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ baseUrl, apiKey }),
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(payload?.error || '获取模型失败');
-    }
-    return payload.models || [];
-  }, [getApiAuthHeaders]);
-
-  useEffect(() => {
-    if (!hasLoginSession && showAiPage) {
-      setShowAiPage(false);
-    }
-  }, [hasLoginSession, showAiPage]);
-
-  useEffect(() => {
-    document.documentElement.style.overflow = showAiPage ? 'hidden' : '';
-    document.documentElement.style.overscrollBehavior = showAiPage ? 'none' : '';
-    document.body.style.overflow = showAiPage ? 'hidden' : '';
-    document.body.style.overscrollBehavior = showAiPage ? 'none' : '';
-    return () => {
-      document.documentElement.style.overflow = '';
-      document.documentElement.style.overscrollBehavior = '';
-      document.body.style.overflow = '';
-      document.body.style.overscrollBehavior = '';
-    };
-  }, [showAiPage]);
-
-  useEffect(() => {
-    if (!showAiPage) {
-      setIsAiSettingsOpen(false);
-    }
-  }, [showAiPage, setIsAiSettingsOpen]);
-
   // 加载状态
   if (isLoading) {
     return (
@@ -373,32 +299,9 @@ export default function App() {
       <div className="fixed inset-0 z-0 bg-gray-900/50" />
 
       {/* 主内容 */}
-      <Suspense fallback={null}>
-        {showAiPage && (
-          <AiAssistantPage
-            visible={showAiPage}
-            onClose={closeAiPage}
-            isLoggedIn={hasLoginSession}
-            onRequireLogin={() => setIsLoginModalOpen(true)}
-            aiConfig={aiConfig}
-            conversations={conversations}
-            activeConversation={activeConversation}
-            activeConversationId={activeConversationId}
-            setActiveConversationId={setActiveConversationId}
-            onCreateConversation={createConversation}
-            onDeleteConversation={deleteConversation}
-            onSendMessage={sendMessage}
-            onSaveConfig={saveAiConfig}
-            onShowToast={showToast}
-            onOpenSettings={() => setIsAiSettingsOpen(true)}
-            streamingConversationId={streamingConversationId}
-          />
-        )}
-      </Suspense>
       <MainPage
         isAdmin={isAdminVisible}
         hasLoginSession={hasLoginSession}
-        showAiPage={showAiPage}
         activePage={activePage}
         // 搜索
         searchQuery={searchQuery}
@@ -448,7 +351,6 @@ export default function App() {
         setIsWebDavModalOpen={setIsWebDavModalOpen}
         setShowStarsPage={setShowStarsPage}
         showStarsPage={showStarsPage}
-        onOpenAiPage={openAiPage}
         importInputRef={importInputRef}
         handleShowAdmin={handleShowAdmin}
         handleRequestAdminExit={handleRequestAdminExit}
@@ -523,15 +425,6 @@ export default function App() {
             onStartOAuth={handleStartOAuth}
             onResetGroups={handleResetGroups}
             reposCount={starsRepos.length}
-          />
-        )}
-        {isAiSettingsOpen && (
-          <AiAssistantSettingsModal
-            isOpen={isAiSettingsOpen}
-            onClose={() => setIsAiSettingsOpen(false)}
-            initialConfig={aiConfig}
-            onSave={saveAiConfig}
-            onFetchModels={handleFetchAiModels}
           />
         )}
       </Suspense>
